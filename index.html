@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NEXORA 2026 — Admin Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:#050507;color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;padding:12px}
@@ -132,6 +133,7 @@
         <button data-send="reg">✉ Registration</button>
         <button data-send="pass">🎟 Entry pass</button>
         <button data-send="entry">✅ Entry confirmation</button>
+        <button class="primary" id="dlPass">⬇ Download pass (PNG)</button>
       </div>
       <div class="muted" style="margin-top:6px">Sent to the email currently saved in the database. Save first if you changed it.</div>
     </div>
@@ -265,6 +267,7 @@ function renderRows() {
         ${paid ? "" : `<button data-act="pay" data-v="Paid" data-id="${id}">Paid</button>`}
         ${lc(r.pay) === "cancelled" ? "" : `<button class="danger" data-act="pay" data-v="Cancelled" data-id="${id}">Cancel</button>`}
         ${paid ? `<button data-act="pass" data-id="${id}">Pass ↻</button>` : ""}
+        ${paid ? `<button data-act="dl" data-id="${id}">⬇ Pass</button>` : ""}
         <button data-act="edit" data-id="${id}">✎ Edit</button>
         ${paid ? `<button data-act="entry" data-v="${ent ? "Not Entered" : "Entered"}" data-id="${id}">${ent ? "Undo" : "Enter"}</button>` : ""}`}
       </div></td></tr>`;
@@ -276,6 +279,7 @@ $("rows").addEventListener("click", async (ev) => {
   const b = ev.target.closest("button[data-act]"); if (!b) return;
   const id = b.dataset.id, act = b.dataset.act, v = b.dataset.v;
   if (act === "edit") return openEdit(id);
+  if (act === "dl") return downloadPass(id);
   const msg = act === "pay" ? `Set ${id} to ${v}?` + (v === "Paid" ? " The entry pass will be emailed." : "")
             : act === "pass" ? `Resend entry pass to ${id}?` : `Set ${id} to ${v}?`;
   if (!confirm(msg)) return;
@@ -304,6 +308,65 @@ $("csvBtn").addEventListener("click", () => {
   a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" }));
   a.download = "nexora-attendees.csv"; a.click();
 });
+
+/* ---------- download pass as PNG (same look as the email pass) ---------- */
+const EV = { name: "NEXORA 2026", tag: "New People • New Stories • Same Dreams",
+             date: "13 October 2026", time: "11:30 AM – 5:30 PM", venue: "Tamasha Balle Balle Restaurant, Bilaspur" };
+
+function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
+
+async function downloadPass(id) {
+  const r = DATA.rows.find(x => x.regId === id); if (!r) return;
+  if (typeof qrcode === "undefined") return toast("QR library didn't load. Check internet and reload.");
+  if (!r.qr) return toast("This attendee has no QR code in the sheet.");
+  if (lc(r.pay) !== "paid" && !confirm("Payment is not marked Paid — the scanner will reject this pass. Download anyway?")) return;
+
+  const W = 640, H = 1000, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d");
+  const GOLD = "#d4af37", YEL = "#ffd700";
+  const text = (t, px, py, font, color, align) => { x.font = font; x.fillStyle = color; x.textAlign = align || "center"; x.fillText(t, px, py); };
+  const fit = (t, font, maxW) => { let s = parseInt(font.match(/(\d+)px/)[1]); while (s > 12) { x.font = font.replace(/\d+px/, s + "px"); if (x.measureText(t).width <= maxW) break; s -= 2; } return font.replace(/\d+px/, s + "px"); };
+  const F = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+
+  x.fillStyle = "#050505"; x.fillRect(0, 0, W, H);
+  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(18, 18, W - 36, H - 36);
+
+  text("MASTER FRESHER", W / 2, 80, `700 18px ${F}`, GOLD);
+  text(EV.name, W / 2, 140, `900 56px ${F}`, "#fff");
+  text(EV.tag, W / 2, 175, `400 18px ${F}`, "#ccc");
+  x.strokeStyle = GOLD; x.setLineDash([6, 6]); x.beginPath(); x.moveTo(50, 205); x.lineTo(W - 50, 205); x.stroke(); x.setLineDash([]);
+
+  const info = [["NAME", r.name], ["DEPARTMENT", r.dept], ["SEMESTER", r.sem], ["CATEGORY", r.category],
+                ["PAYMENT", lc(r.pay) === "paid" ? "VERIFIED" : r.pay.toUpperCase()]];
+  info.forEach((row, i) => {
+    const y = 250 + i * 44;
+    text(row[0], 60, y, `700 15px ${F}`, "#8e8e93", "left");
+    x.font = `700 22px ${F}`;
+    text(row[1] || "—", W - 60, y, fit(row[1] || "—", `700 22px ${F}`, 340), "#fff", "right");
+  });
+
+  text("REGISTRATION ID", W / 2, 505, `700 15px ${F}`, "#8e8e93");
+  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(W / 2 - 150, 520, 300, 56);
+  text(r.regId, W / 2, 560, `900 30px ${F}`, YEL);
+
+  const qr = qrcode(0, "M"); qr.addData(r.qr); qr.make();
+  const img = await loadImg(qr.createDataURL(10, 0));
+  x.fillStyle = "#fff"; x.fillRect(W / 2 - 150, 610, 300, 320);
+  x.imageSmoothingEnabled = false;
+  x.drawImage(img, W / 2 - 130, 625, 260, 260);
+  text("SCAN AT ENTRANCE", W / 2, 915, `900 15px ${F}`, "#000");
+
+  text(EV.date, W / 2, 960, `800 20px ${F}`, YEL);
+  text(EV.time + "  ·  " + EV.venue, W / 2, 985, fit(EV.time + "  ·  " + EV.venue, `400 14px ${F}`, W - 80), "#ccc");
+
+  c.toBlob((b) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(b); a.download = r.regId + "-pass.png"; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, "image/png");
+  toast("Pass downloaded for " + r.name);
+}
+$("dlPass").addEventListener("click", () => { if (EDIT) downloadPass(EDIT.regId); });
 
 /* ---------- edit database row ---------- */
 const DEPTS = ["Chemistry", "Biotechnology", "Computer Science", "Zoology", "PGDCA"];
