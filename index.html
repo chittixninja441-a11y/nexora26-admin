@@ -45,6 +45,18 @@
   .p-cancelled,.p-duplicate{color:#f87171;border-color:#dc2626;background:#270d0d}
   .p-no{color:#94a3b8;border-color:#33333d}
   .acts{display:flex;gap:4px}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;z-index:30;padding:16px}
+  .modal.show{display:flex}
+  .mbox{background:#0e0e13;border:1.5px solid #d4af37;border-radius:14px;padding:16px;width:100%;max-width:520px}
+  .mbox h2{font-size:15px;color:#ffd700;margin-bottom:10px}
+  .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .fgrid label{display:flex;flex-direction:column;gap:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;font-weight:700}
+  .fgrid label.full{grid-column:1/-1}
+  .fgrid input,.fgrid select{width:100%;font-size:13px;text-transform:none;letter-spacing:0;color:#fff}
+  .msec{margin-top:12px;padding-top:10px;border-top:1px dashed #2e2612}
+  .msec .t{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#d4af37;margin-bottom:6px;font-weight:800}
+  .mrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chk{font-size:12px;color:#cbd5e1;display:flex;gap:6px;align-items:center;margin-top:8px}
   #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1f1f26;border:1px solid #d4af37;padding:9px 14px;border-radius:8px;display:none;z-index:9;max-width:90vw}
 </style>
 </head>
@@ -64,6 +76,7 @@
       <div><h1>NEXORA <span class="gold">2026</span> · Admin</h1><div class="muted" id="updated">—</div></div>
       <div style="display:flex;gap:6px">
         <button id="refreshBtn">↻ Refresh</button>
+        <button id="bulkBtn">✉ Send pending passes</button>
         <button id="csvBtn">⬇ CSV</button>
         <button id="logoutBtn" class="danger">Sign out</button>
       </div>
@@ -106,6 +119,26 @@
         <tbody id="logRows"></tbody>
       </table></div>
     </section>
+  </div>
+</div>
+<div class="modal" id="modal">
+  <div class="mbox">
+    <h2 id="mTitle">Edit</h2>
+    <div class="fgrid" id="mBody"></div>
+    <label class="chk"><input type="checkbox" id="e_resend"> Re-send registration email after saving</label>
+    <div class="msec">
+      <div class="t">Resend emails</div>
+      <div class="mrow">
+        <button data-send="reg">✉ Registration</button>
+        <button data-send="pass">🎟 Entry pass</button>
+        <button data-send="entry">✅ Entry confirmation</button>
+      </div>
+      <div class="muted" style="margin-top:6px">Sent to the email currently saved in the database. Save first if you changed it.</div>
+    </div>
+    <div class="mrow" style="margin-top:14px;justify-content:flex-end">
+      <button id="mCancel">Cancel</button>
+      <button class="primary" id="mSave">Save changes</button>
+    </div>
   </div>
 </div>
 <div id="toast"></div>
@@ -156,7 +189,7 @@ async function load(showErr) {
     const d = await api("admindata");
     if (!d.success) { if (showErr) $("loginMsg").textContent = d.message; return false; }
     DATA = d; render();
-    $("updated").textContent = "Updated " + d.serverTime;
+    $("updated").textContent = "Updated " + d.serverTime + (d.quota != null ? " · emails left today: " + d.quota : "");
     return true;
   } catch (e) { if (showErr) $("loginMsg").textContent = e.message; else toast(e.message); return false; }
 }
@@ -232,6 +265,7 @@ function renderRows() {
         ${paid ? "" : `<button data-act="pay" data-v="Paid" data-id="${id}">Paid</button>`}
         ${lc(r.pay) === "cancelled" ? "" : `<button class="danger" data-act="pay" data-v="Cancelled" data-id="${id}">Cancel</button>`}
         ${paid ? `<button data-act="pass" data-id="${id}">Pass ↻</button>` : ""}
+        <button data-act="edit" data-id="${id}">✎ Edit</button>
         ${paid ? `<button data-act="entry" data-v="${ent ? "Not Entered" : "Entered"}" data-id="${id}">${ent ? "Undo" : "Enter"}</button>` : ""}`}
       </div></td></tr>`;
   }).join("") || '<tr><td colspan="10" class="muted">No matches</td></tr>';
@@ -241,6 +275,7 @@ function renderRows() {
 $("rows").addEventListener("click", async (ev) => {
   const b = ev.target.closest("button[data-act]"); if (!b) return;
   const id = b.dataset.id, act = b.dataset.act, v = b.dataset.v;
+  if (act === "edit") return openEdit(id);
   const msg = act === "pay" ? `Set ${id} to ${v}?` + (v === "Paid" ? " The entry pass will be emailed." : "")
             : act === "pass" ? `Resend entry pass to ${id}?` : `Set ${id} to ${v}?`;
   if (!confirm(msg)) return;
@@ -268,6 +303,79 @@ $("csvBtn").addEventListener("click", () => {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" }));
   a.download = "nexora-attendees.csv"; a.click();
+});
+
+/* ---------- edit database row ---------- */
+const DEPTS = ["Chemistry", "Biotechnology", "Computer Science", "Zoology", "PGDCA"];
+const SEMS = ["1st Semester", "2nd Semester", "3rd Semester", "4th Semester"];
+const CATS = ["Junior", "Senior"], METHODS = ["Cash", "Online"], PAYS = ["Pending", "Paid", "Cancelled"];
+let EDIT = null;
+
+const opts = (list, cur, blank) => (blank ? `<option value="">Not set</option>` : "") +
+  (cur && !list.includes(cur) ? [cur, ...list] : list).map(x => `<option${x === cur ? " selected" : ""}>${esc(x)}</option>`).join("");
+const fld = (label, html, full) => `<label class="${full ? "full" : ""}">${label}${html}</label>`;
+
+function openEdit(id) {
+  const r = DATA.rows.find(x => x.regId === id); if (!r) return;
+  EDIT = r;
+  $("mTitle").textContent = "Edit " + r.regId + " — " + r.name;
+  $("mBody").innerHTML =
+    fld("Full name", `<input id="e_name" value="${esc(r.name)}">`, true) +
+    fld("Email", `<input id="e_email" type="email" value="${esc(r.email)}">`) +
+    fld("Phone", `<input id="e_phone" value="${esc(r.phone)}">`) +
+    fld("Gender", `<select id="e_gender">${opts(GENDERS.slice(0, 4), GENDERS.slice(0, 4).find(g => lc(g) === lc(r.gender)) || r.gender, true)}</select>`) +
+    fld("Department", `<select id="e_dept">${opts(DEPTS, r.dept)}</select>`) +
+    fld("Semester", `<select id="e_sem">${opts(SEMS, r.sem)}</select>`) +
+    fld("Category", `<select id="e_cat">${opts(CATS, r.category)}</select>`) +
+    fld("Payment method", `<select id="e_method">${opts(METHODS, r.method)}</select>`) +
+    fld("Transaction ID", `<input id="e_txn" value="${esc(r.txn)}">`) +
+    fld("Amount (₹)", `<input id="e_amount" type="number" min="0" value="${r.amount || 0}">`) +
+    fld("Payment status", `<select id="e_pay">${opts(PAYS, r.pay)}</select>`, true);
+  $("e_resend").checked = false;
+  $("modal").classList.add("show");
+}
+const closeEdit = () => { $("modal").classList.remove("show"); EDIT = null; };
+
+async function saveEdit() {
+  if (!EDIT) return;
+  const fields = {
+    "Full Name": $("e_name").value, "Email Address": $("e_email").value, "Phone Number": $("e_phone").value,
+    "Gender": $("e_gender").value, "Department": $("e_dept").value, "Semester": $("e_sem").value,
+    "Category": $("e_cat").value, "Payment Method": $("e_method").value, "Transaction ID": $("e_txn").value,
+    "Amount": $("e_amount").value, "Payment Status": $("e_pay").value
+  };
+  if (fields["Payment Status"] === "Paid" && lc(EDIT.pay) !== "paid" &&
+      !confirm("Payment will be set to Paid and the entry pass emailed. Continue?")) return;
+  $("mSave").disabled = true; $("mSave").textContent = "Saving…";
+  try {
+    const d = await api("adminedit", { regId: EDIT.regId, fields: JSON.stringify(fields), resend: $("e_resend").checked ? "reg" : "" });
+    toast(d.message || "Done");
+    if (d.success) { closeEdit(); await load(); }
+  } catch (e) { toast(e.message); }
+  $("mSave").disabled = false; $("mSave").textContent = "Save changes";
+}
+$("mSave").addEventListener("click", saveEdit);
+$("mCancel").addEventListener("click", closeEdit);
+$("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeEdit(); });
+
+document.querySelectorAll("[data-send]").forEach(b => b.addEventListener("click", async () => {
+  if (!EDIT) return;
+  const what = b.dataset.send, label = b.textContent.trim();
+  if (!confirm(`Send "${label}" email to ${EDIT.email}?`)) return;
+  b.disabled = true;
+  try { const d = await api("adminresend", { regId: EDIT.regId, what }); toast(d.message || "Done"); if (d.success) load(); }
+  catch (e) { toast(e.message); }
+  b.disabled = false;
+}));
+
+$("bulkBtn").addEventListener("click", async () => {
+  const n = DATA.rows.filter(r => lc(r.pay) === "paid" && lc(r.passSent) !== "yes").length;
+  if (!n) return toast("No pending passes — everyone paid already has one.");
+  if (!confirm(`Send entry passes to ${n} paid attendee(s) who haven't received one?\nEmails left today: ${DATA.quota ?? "?"}`)) return;
+  $("bulkBtn").disabled = true; toast("Sending… this can take a while.");
+  try { const d = await api("adminbulkpass"); toast(d.message || "Done"); await load(); }
+  catch (e) { toast(e.message); }
+  $("bulkBtn").disabled = false;
 });
 
 $("refreshBtn").addEventListener("click", () => load());
