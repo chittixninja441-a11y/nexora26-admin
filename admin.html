@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA 2026 — Admin Dashboard</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#050507;color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;padding:12px}
+  .wrap{max-width:1100px;margin:0 auto}
+  h1{font-size:20px;font-weight:900;letter-spacing:1px}
+  .gold{color:#d4af37}
+  button,select,input{font:inherit}
+  button{cursor:pointer;border:1px solid #453916;background:#1f1f26;color:#f5e3a9;border-radius:6px;padding:6px 10px;font-weight:700;font-size:12px}
+  button.primary{background:linear-gradient(135deg,#f5e3a9,#d4af37);color:#08080a;border:none}
+  button.danger{color:#f87171;border-color:#5b1d1d}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  input,select{background:#0e0e13;border:1px solid #2d2d38;color:#fff;border-radius:6px;padding:7px 9px;outline:none}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .muted{color:#94a3b8;font-size:11px}
+  #login{max-width:320px;margin:18vh auto;text-align:center;display:flex;flex-direction:column;gap:10px}
+  #app{display:none}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tabs button.on{background:#d4af37;color:#08080a}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+  .card{background:#0e0e13;border:1px solid #2a2410;border-radius:10px;padding:10px 12px}
+  .card b{display:block;font-size:24px;color:#ffd700}
+  .card span{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;font-weight:800}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+  .panel{background:#0e0e13;border:1px solid #2a2410;border-radius:10px;padding:12px}
+  .panel h3{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#d4af37;margin-bottom:8px}
+  .bar-row{margin:7px 0}
+  .bar-row .l{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+  .bar{height:6px;background:#1f1f26;border-radius:3px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#d4af37,#4ade80)}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+  .filters input{flex:1;min-width:160px}
+  .tbl{overflow-x:auto;border:1px solid #2a2410;border-radius:10px}
+  table{width:100%;border-collapse:collapse;min-width:820px}
+  th,td{padding:7px 9px;text-align:left;border-bottom:1px solid #1a1a22;white-space:nowrap;font-size:12px}
+  th{background:#0a0a0c;color:#d4af37;font-size:10px;letter-spacing:1px;text-transform:uppercase;position:sticky;top:0}
+  .pill{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;border:1px solid}
+  .p-paid,.p-entered{color:#4ade80;border-color:#16a34a;background:#062312}
+  .p-pending{color:#facc15;border-color:#715918;background:#1e1b10}
+  .p-cancelled,.p-duplicate{color:#f87171;border-color:#dc2626;background:#270d0d}
+  .p-no{color:#94a3b8;border-color:#33333d}
+  .acts{display:flex;gap:4px}
+  #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1f1f26;border:1px solid #d4af37;padding:9px 14px;border-radius:8px;display:none;z-index:9;max-width:90vw}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="login">
+    <h1>NEXORA <span class="gold">2026</span></h1>
+    <div class="muted">Admin Dashboard</div>
+    <input type="password" id="pinInput" placeholder="Admin PIN" autocomplete="off">
+    <button class="primary" id="loginBtn">Sign in</button>
+    <div id="loginMsg" class="muted" style="color:#f87171"></div>
+  </div>
+
+  <div id="app">
+    <div class="top">
+      <div><h1>NEXORA <span class="gold">2026</span> · Admin</h1><div class="muted" id="updated">—</div></div>
+      <div style="display:flex;gap:6px">
+        <button id="refreshBtn">↻ Refresh</button>
+        <button id="csvBtn">⬇ CSV</button>
+        <button id="logoutBtn" class="danger">Sign out</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button data-tab="overview" class="on">Overview</button>
+      <button data-tab="people">Attendees</button>
+      <button data-tab="log">Entry Log</button>
+    </div>
+
+    <section id="tab-overview">
+      <div class="cards" id="cards"></div>
+      <div class="grid2">
+        <div class="panel"><h3>Gender</h3><div id="byGender"></div></div>
+        <div class="panel"><h3>Department</h3><div id="byDept"></div></div>
+        <div class="panel"><h3>Category</h3><div id="byCat"></div></div>
+        <div class="panel"><h3>Payment method</h3><div id="byMethod"></div></div>
+      </div>
+    </section>
+
+    <section id="tab-people" style="display:none">
+      <div class="filters">
+        <input id="q" placeholder="Search name, ID, email, phone, txn…">
+        <select id="fPay"><option value="">Payment: all</option><option>Paid</option><option>Pending</option><option>Cancelled</option><option>Duplicate</option></select>
+        <select id="fEntry"><option value="">Entry: all</option><option>Entered</option><option>Not Entered</option></select>
+        <select id="fGender"></select>
+        <select id="fDept"></select>
+      </div>
+      <div class="muted" id="count" style="margin-bottom:6px"></div>
+      <div class="tbl"><table>
+        <thead><tr><th>ID</th><th>Name</th><th>Dept</th><th>Gender</th><th>Cat</th><th>Method</th><th>₹</th><th>Payment</th><th>Entry</th><th>Actions</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table></div>
+    </section>
+
+    <section id="tab-log" style="display:none">
+      <div class="tbl"><table style="min-width:600px">
+        <thead><tr><th>Time</th><th>Code / ID</th><th>Name</th><th>Gender</th><th>Result</th></tr></thead>
+        <tbody id="logRows"></tbody>
+      </table></div>
+    </section>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+/* ===== CONFIG — same Apps Script /exec URL and key as the scanner ===== */
+const SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxh4eXyvRSSDjJcD2KL470Td6H42YW4_xBp9vO9VgRuAMcyMkqJw-956OnKOoHZZq_-/exec";
+const SCANNER_API_KEY    = "NEXORA_SECURE_SCAN_KEY_2026_x9F2";
+const GENDERS = ["Male", "Female", "Other", "Prefer not to say", "Not specified"];
+
+let PIN = "", DATA = { rows: [], log: [] }, timer = null;
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- network (JSONP, fetch fallback) ---------- */
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    const s = document.createElement("script");
+    const done = (fn, v) => { clearTimeout(t); delete window[cb]; s.remove(); fn(v); };
+    const t = setTimeout(() => done(reject, new Error("timeout")), 20000);
+    window[cb] = (d) => done(resolve, d);
+    s.onerror = () => done(reject, new Error("jsonp-failed"));
+    s.src = url + "&callback=" + cb + "&_=" + Date.now();
+    document.body.appendChild(s);
+  });
+}
+async function api(action, extra = {}) {
+  const qs = new URLSearchParams({ apiKey: SCANNER_API_KEY, action, pin: PIN, ...extra });
+  const url = SCRIPT_WEB_APP_URL + "?" + qs.toString();
+  try { return await jsonp(url); }
+  catch (_) {
+    try { return await (await fetch(url + "&_=" + Date.now())).json(); }
+    catch (e) { throw new Error("Server unreachable. Check internet / deployment."); }
+  }
+}
+
+/* ---------- helpers ---------- */
+function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 3000); }
+const gOf = (r) => GENDERS.find(g => g.toLowerCase() === (r.gender || "").toLowerCase()) || "Not specified";
+const isDup = (r) => /duplicate/i.test(r.pay) || /duplicate/i.test(r.regId);
+const pill = (txt, cls) => `<span class="pill p-${cls}">${esc(txt || "—")}</span>`;
+const lc = (s) => String(s || "").toLowerCase();
+
+/* ---------- load / render ---------- */
+async function load(showErr) {
+  try {
+    const d = await api("admindata");
+    if (!d.success) { if (showErr) $("loginMsg").textContent = d.message; return false; }
+    DATA = d; render();
+    $("updated").textContent = "Updated " + d.serverTime;
+    return true;
+  } catch (e) { if (showErr) $("loginMsg").textContent = e.message; else toast(e.message); return false; }
+}
+
+function tally(rows, keyFn) {
+  const m = {};
+  rows.forEach(r => {
+    const k = keyFn(r) || "—";
+    m[k] = m[k] || { reg: 0, paid: 0, entered: 0 };
+    m[k].reg++;
+    if (lc(r.pay) === "paid") { m[k].paid++; if (lc(r.entry) === "entered") m[k].entered++; }
+  });
+  return m;
+}
+function bars(el, m, order) {
+  const keys = (order || Object.keys(m)).filter(k => m[k]);
+  const max = Math.max(1, ...keys.map(k => m[k].reg));
+  $(el).innerHTML = keys.map(k => `<div class="bar-row">
+    <div class="l"><span>${esc(k)}</span><span class="muted">${m[k].reg} reg · ${m[k].paid} paid · <b style="color:#4ade80">${m[k].entered} in</b></span></div>
+    <div class="bar"><i style="width:${m[k].reg / max * 100}%"></i></div></div>`).join("") || '<div class="muted">No data</div>';
+}
+
+function render() {
+  const rows = DATA.rows.filter(r => !isDup(r));
+  const paid = rows.filter(r => lc(r.pay) === "paid");
+  const entered = paid.filter(r => lc(r.entry) === "entered");
+  const cards = [
+    ["Registered", rows.length], ["Paid", paid.length],
+    ["Pending", rows.filter(r => lc(r.pay) === "pending").length],
+    ["Cancelled", rows.filter(r => lc(r.pay) === "cancelled").length],
+    ["Entered", entered.length + " / " + paid.length],
+    ["Revenue", "₹" + paid.reduce((a, r) => a + r.amount, 0).toLocaleString("en-IN")]
+  ];
+  $("cards").innerHTML = cards.map(c => `<div class="card"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("");
+
+  bars("byGender", tally(rows, gOf), GENDERS);
+  bars("byDept", tally(rows, r => r.dept));
+  bars("byCat", tally(rows, r => r.category));
+  bars("byMethod", tally(rows, r => r.method));
+
+  // filter dropdowns (keep current selection)
+  const fill = (id, label, list) => { const s = $(id), v = s.value; s.innerHTML = `<option value="">${label}: all</option>` + list.map(x => `<option>${esc(x)}</option>`).join(""); s.value = v; };
+  fill("fGender", "Gender", GENDERS);
+  fill("fDept", "Dept", [...new Set(rows.map(r => r.dept).filter(Boolean))].sort());
+
+  renderRows();
+  $("logRows").innerHTML = DATA.log.map(l => `<tr>${l.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")
+    || '<tr><td colspan="5" class="muted">No scans yet</td></tr>';
+}
+
+function filtered() {
+  const q = lc($("q").value), p = $("fPay").value, e = $("fEntry").value, g = $("fGender").value, d = $("fDept").value;
+  return DATA.rows.filter(r =>
+    (!q || lc([r.regId, r.name, r.email, r.phone, r.txn].join(" ")).includes(q)) &&
+    (!p || lc(r.pay) === lc(p)) && (!e || lc(r.entry) === lc(e)) &&
+    (!g || gOf(r) === g) && (!d || r.dept === d));
+}
+
+function renderRows() {
+  const list = filtered();
+  $("count").textContent = list.length + " of " + DATA.rows.length + " shown";
+  $("rows").innerHTML = list.map(r => {
+    const dup = isDup(r), paid = lc(r.pay) === "paid", ent = lc(r.entry) === "entered";
+    const id = esc(r.regId);
+    return `<tr>
+      <td><b class="gold">${id}</b></td>
+      <td>${esc(r.name)}<div class="muted">${esc(r.phone)}</div></td>
+      <td>${esc(r.dept)}</td>
+      <td>${esc(gOf(r))}</td><td>${esc(r.category)}</td><td>${esc(r.method)}</td><td>${r.amount || ""}</td>
+      <td>${pill(r.pay, lc(r.pay) || "no")}</td>
+      <td>${ent ? pill("Entered", "entered") + `<div class="muted">${esc(r.entryTime)}</div>` : pill("Not entered", "no")}</td>
+      <td><div class="acts">${dup ? '<span class="muted">duplicate</span>' : `
+        ${paid ? "" : `<button data-act="pay" data-v="Paid" data-id="${id}">Paid</button>`}
+        ${lc(r.pay) === "cancelled" ? "" : `<button class="danger" data-act="pay" data-v="Cancelled" data-id="${id}">Cancel</button>`}
+        ${paid ? `<button data-act="pass" data-id="${id}">Pass ↻</button>` : ""}
+        ${paid ? `<button data-act="entry" data-v="${ent ? "Not Entered" : "Entered"}" data-id="${id}">${ent ? "Undo" : "Enter"}</button>` : ""}`}
+      </div></td></tr>`;
+  }).join("") || '<tr><td colspan="10" class="muted">No matches</td></tr>';
+}
+
+/* ---------- actions ---------- */
+$("rows").addEventListener("click", async (ev) => {
+  const b = ev.target.closest("button[data-act]"); if (!b) return;
+  const id = b.dataset.id, act = b.dataset.act, v = b.dataset.v;
+  const msg = act === "pay" ? `Set ${id} to ${v}?` + (v === "Paid" ? " The entry pass will be emailed." : "")
+            : act === "pass" ? `Resend entry pass to ${id}?` : `Set ${id} to ${v}?`;
+  if (!confirm(msg)) return;
+  b.disabled = true;
+  try {
+    const d = act === "pay" ? await api("adminpay", { regId: id, value: v })
+            : act === "pass" ? await api("adminresend", { regId: id, what: "pass" })
+            : await api("adminentry", { regId: id, value: v });
+    toast(d.message || (d.success ? "Done" : "Failed"));
+    if (d.success) await load();
+  } catch (e) { toast(e.message); }
+  b.disabled = false;
+});
+
+["q", "fPay", "fEntry", "fGender", "fDept"].forEach(id => $(id).addEventListener("input", renderRows));
+
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  ["overview", "people", "log"].forEach(t => $("tab-" + t).style.display = t === b.dataset.tab ? "block" : "none");
+}));
+
+$("csvBtn").addEventListener("click", () => {
+  const cols = ["regId","name","dept","email","phone","gender","category","method","txn","amount","pay","pass","entry","entryTime"];
+  const csv = [cols.join(",")].concat(filtered().map(r => cols.map(c => '"' + String(r[c] == null ? "" : r[c]).replace(/"/g, '""') + '"').join(","))).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" }));
+  a.download = "nexora-attendees.csv"; a.click();
+});
+
+$("refreshBtn").addEventListener("click", () => load());
+$("logoutBtn").addEventListener("click", () => { PIN = ""; clearInterval(timer); $("app").style.display = "none"; $("login").style.display = "flex"; $("pinInput").value = ""; });
+
+async function doLogin() {
+  PIN = $("pinInput").value.trim(); if (!PIN) return;
+  $("loginMsg").textContent = ""; $("loginBtn").disabled = true; $("loginBtn").textContent = "Checking…";
+  const ok = await load(true);
+  $("loginBtn").disabled = false; $("loginBtn").textContent = "Sign in";
+  if (ok) { $("login").style.display = "none"; $("app").style.display = "block"; clearInterval(timer); timer = setInterval(() => load(), 30000); }
+  else PIN = "";
+}
+$("loginBtn").addEventListener("click", doLogin);
+$("pinInput").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+</script>
+</body>
+</html>
