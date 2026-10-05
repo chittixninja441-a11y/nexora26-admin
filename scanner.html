@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#050507">
+<title>NEXORA '26 — Gate Scanner</title>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>if(typeof ZXing==="undefined"){document.write('<script src="https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js"><\/script>');}</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#050507;color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:12px}
+.container{width:100%;max-width:440px;display:flex;flex-direction:column;gap:10px}
+header{text-align:center}
+.badge{font-size:10px;font-weight:800;letter-spacing:3px;color:#d4af37;text-transform:uppercase}
+h1{font-size:22px;font-weight:900;letter-spacing:1px}
+.sub{font-size:10px;color:#64748b;letter-spacing:1.5px;text-transform:uppercase}
+.online{display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:5px}
+.online.off{background:#ef4444}
+
+.viewport{position:relative;background:#0d0d12;border:1.5px solid #2a2410;border-radius:16px;overflow:hidden;aspect-ratio:1/1;box-shadow:0 10px 30px rgba(0,0,0,.8)}
+video{width:100%;height:100%;object-fit:cover;display:block}
+.target{position:absolute;inset:14%;border:2px solid rgba(212,175,55,.55);border-radius:14px;pointer-events:none;display:none}
+.laser{position:absolute;left:14%;width:72%;height:2px;background:#ef4444;box-shadow:0 0 10px #ef4444;animation:laser 2s infinite ease-in-out;pointer-events:none;display:none}
+.viewport.live .target,.viewport.live .laser{display:block}
+@keyframes laser{0%,100%{top:20%;opacity:.3}50%{top:80%;opacity:1}}
+.cam-tools{position:absolute;top:10px;right:10px;display:none;gap:8px}
+.viewport.live .cam-tools{display:flex}
+.round{width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:18px;display:none;align-items:center;justify-content:center;cursor:pointer}
+.round.show{display:flex}
+.round.on{background:#d4af37;color:#000}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:22px;text-align:center;background:#0d0d12}
+.viewport.live .overlay{display:none}
+.overlay .ico{font-size:38px}
+.overlay .t{font-weight:800;font-size:15px}
+.overlay .d{font-size:12px;color:#94a3b8;line-height:1.5}
+
+button{font:inherit;cursor:pointer;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:800;transition:opacity .2s,transform .05s}
+button:active{transform:scale(.98)}button:disabled{opacity:.35;cursor:not-allowed}
+.gold{background:linear-gradient(135deg,#f5e3a9,#d4af37);color:#08080a}
+.dark{background:#1f1f26;color:#cbd5e1;border:1px solid #33333d}
+.row2{display:flex;gap:8px}.row2>*{flex:1}
+
+.status{padding:11px;border-radius:10px;text-align:center;font-size:13px;font-weight:800;display:none}
+.status.loading{display:block;background:#1e1b10;color:#facc15;border:1px solid #715918}
+.status.error{display:block;background:#270d0d;color:#f87171;border:1px solid #dc2626}
+.status.info{display:block;background:#0c1a2b;color:#7dd3fc;border:1px solid #0369a1}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#0e0e13;border:1px solid #1f1f26;border-radius:12px;padding:10px 4px;text-align:center}
+.stat b{display:block;font-size:24px;color:#ffd700;line-height:1.1}
+.stat b.bump{animation:bump .4s}
+.stat span{font-size:9px;letter-spacing:1.5px;color:#64748b;font-weight:800;text-transform:uppercase}
+@keyframes bump{40%{transform:scale(1.25);color:#4ade80}}
+.progress{height:5px;background:#1f1f26;border-radius:3px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#d4af37,#4ade80);transition:width .4s}
+
+.manual{display:flex;flex-direction:column;gap:8px;background:#0e0e12;border:1px solid #22222a;border-radius:12px;padding:10px}
+.manual input{background:#050507;border:1px solid #2d2d38;border-radius:8px;padding:11px;color:#fff;font-size:14px;outline:none;width:100%}
+.manual input:focus{border-color:#d4af37}
+.manual .row2 button{padding:10px;font-size:12px}
+.hint{font-size:10px;color:#64748b;text-align:center;line-height:1.5}
+
+/* result sheet */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:20;transform:translateY(110%);transition:transform .22s ease;padding:16px 16px 22px;border-radius:20px 20px 0 0;max-width:440px;margin:0 auto;border:2px solid;border-bottom:none}
+.sheet.show{transform:none}
+.sheet.ok{background:#062312;border-color:#16a34a}.sheet.bad{background:#270d0d;border-color:#dc2626}
+.sheet.warn{background:#2a2108;border-color:#d4af37}.sheet.neutral{background:#0c1a2b;border-color:#0369a1}
+.sheet .big{font-size:22px;font-weight:900;letter-spacing:1px;margin-bottom:2px}
+.sheet.ok .big{color:#4ade80}.sheet.bad .big{color:#f87171}.sheet.warn .big{color:#ffd700}.sheet.neutral .big{color:#7dd3fc}
+.sheet .msg{font-size:12px;color:#cbd5e1;margin-bottom:10px}
+.sheet .name{font-size:18px;font-weight:800}
+.sheet .rid{font-size:13px;font-weight:900;color:#ffd700;margin-bottom:8px}
+.kv{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+.kv span:first-child{color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:700}
+.kv span:last-child{font-weight:700}
+.tap{text-align:center;font-size:10px;color:#64748b;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">Master Fresher</div>
+    <h1>NEXORA '26</h1>
+    <div class="sub"><span id="net" class="online"></span><span id="gateName">GATE 1</span> • Entry Scanner</div>
+  </header>
+
+  <div id="viewport" class="viewport">
+    <video id="videoPreview" playsinline muted autoplay></video>
+    <div class="target"></div><div class="laser"></div>
+    <div class="cam-tools">
+      <div id="btnTorch" class="round" title="Flashlight">🔦</div>
+      <div id="btnFlip" class="round" title="Switch camera">🔄</div>
+    </div>
+    <div id="overlay" class="overlay">
+      <div class="ico" id="ovIco">📷</div>
+      <div class="t" id="ovTitle">Camera is off</div>
+      <div class="d" id="ovText">Tap the button to start scanning.</div>
+      <button class="gold" id="ovBtn" style="padding:11px 22px">Enable camera</button>
+    </div>
+  </div>
+
+  <div class="row2">
+    <button id="btnStart" class="gold">START CAMERA</button>
+    <button id="btnStop" class="dark" disabled>STOP</button>
+  </div>
+
+  <div id="status" class="status"></div>
+
+  <div class="stats">
+    <div class="stat"><b id="sPaid">—</b><span>Paid</span></div>
+    <div class="stat"><b id="sIn">—</b><span>Entered</span></div>
+    <div class="stat"><b id="sLeft">—</b><span>Remaining</span></div>
+  </div>
+  <div class="progress"><i id="bar"></i></div>
+
+  <div class="manual">
+    <input id="manualInput" type="text" placeholder="Registration ID / QR code" autocomplete="off" autocapitalize="characters">
+    <div class="row2">
+      <button class="dark" id="btnCheck">CHECK</button>
+      <button class="gold" id="btnAdmit">ADMIT</button>
+      <button class="dark" id="btnUndo" style="color:#f87171">UNDO</button>
+    </div>
+    <button class="dark" id="btnPhoto" style="padding:10px;font-size:12px">📸 Scan from photo</button>
+    <input id="photoIn" type="file" accept="image/*" capture="environment" hidden>
+  </div>
+  <div class="hint">Check = view only · Admit = mark entry · Undo = admin PIN.<br>Scan once. Duplicate passes are automatically blocked.</div>
+</div>
+
+<div id="sheet" class="sheet" onclick="hideSheet()">
+  <div id="shBig" class="big">—</div>
+  <div id="shMsg" class="msg"></div>
+  <div id="shName" class="name">—</div>
+  <div id="shRid" class="rid">—</div>
+  <div class="kv"><span>Department</span><span id="shDept">—</span></div>
+  <div class="kv"><span>Category</span><span id="shCat">—</span></div>
+  <div class="kv"><span>Gender</span><span id="shGen">—</span></div>
+  <div class="kv"><span>Entry time</span><span id="shTime">—</span></div>
+  <div class="tap">tap to dismiss</div>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxL6nxspimqh3-7fILFrGt3zohuZhwgy7UQCrf-v17sFlnAVzxjXlcWh7V8goobify_/exec";
+const SCANNER_API_KEY    = "NEXORA_SECURE_SCAN_KEY_2026_x9F2";
+const GATE_NAME          = "GATE 1";
+
+const $ = (id) => document.getElementById(id);
+let reader = null, isProcessing = false, lastText = "", lastTime = 0;
+let cameras = [], camIdx = 0, torchOn = false, sheetTimer = null, userStopped = false;
+$("gateName").textContent = GATE_NAME;
+
+/* ---------- camera ---------- */
+function showOverlay(ico, title, text, btn) {
+  $("ovIco").textContent = ico; $("ovTitle").textContent = title;
+  $("ovText").textContent = text; $("ovBtn").textContent = btn || "Retry";
+  $("viewport").classList.remove("live");
+}
+
+function camProblem(err) {
+  const n = err && err.name;
+  if (!window.isSecureContext)
+    return ["🔒", "Camera needs a secure link", "Open this page using https:// (or localhost). Camera is blocked on plain http."];
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+    return ["🌐", "Browser can't use the camera", "Open this link in Chrome or Safari (not inside WhatsApp / Instagram / other apps)."];
+  if (n === "NotAllowedError" || n === "SecurityError" || n === "PermissionDeniedError")
+    return ["🚫", "Camera permission blocked", "Tap the 🔒 or camera icon in the address bar → Allow camera → then tap Retry."];
+  if (n === "NotFoundError" || n === "DevicesNotFoundError")
+    return ["📷", "No camera found", "This device has no camera. Use manual entry or 'Scan from photo' below."];
+  if (n === "NotReadableError" || n === "TrackStartError")
+    return ["⚠️", "Camera is busy", "Close other apps or tabs using the camera, then tap Retry."];
+  return ["⚠️", "Camera error", (err && err.message) ? err.message : "Unknown error. Tap Retry."];
+}
+
+function onDecode(result) {
+  if (!result || isProcessing) return;
+  const text = result.getText(), now = Date.now();
+  if (text === lastText && now - lastTime < 3000) return;
+  lastText = text; lastTime = now;
+  verifyPass(text);
+}
+
+async function startScanner(deviceId) {
+  if (reader) return;
+  userStopped = false;
+  if (typeof ZXing === "undefined") return showOverlay("📡", "Scanner library failed to load", "Check internet and reload the page.", "Reload");
+  if (!window.isSecureContext || !navigator.mediaDevices) return showOverlay(...camProblem(null));
+
+  $("btnStart").disabled = true; $("btnStop").disabled = false;
+  showOverlay("⏳", "Starting camera…", "Please tap Allow if the browser asks.", "Retry");
+  $("ovBtn").style.display = "none";
+
+  const hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    ZXing.BarcodeFormat.QR_CODE, ZXing.BarcodeFormat.CODE_128, ZXing.BarcodeFormat.CODE_39, ZXing.BarcodeFormat.EAN_13
+  ]);
+  reader = new ZXing.BrowserMultiFormatReader(hints, 150);
+
+  const attempts = [
+    deviceId ? { video: { deviceId: { exact: deviceId } }, audio: false}
+             : { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }, audio: false },
+    { video: true, audio: false }
+  ];
+  let lastErr = null;
+  for (const c of attempts) {
+    try {
+      await reader.decodeFromConstraints(c, "videoPreview", onDecode);
+      lastErr = null; break;
+    } catch (e) { lastErr = e; if (e && e.name !== "OverconstrainedError" && e.name !== "NotFoundError") break; }
+  }
+
+  $("ovBtn").style.display = "";
+  if (lastErr) {
+    try { reader.reset(); } catch (_) {}
+    reader = null;
+    $("btnStart").disabled = false; $("btnStop").disabled = true;
+    return showOverlay(...camProblem(lastErr));
+  }
+
+  $("viewport").classList.add("live");
+  setupCameraTools();
+  requestWakeLock();
+}
+
+async function setupCameraTools() {
+  try {
+    const all = await navigator.mediaDevices.enumerateDevices();
+    cameras = all.filter(d => d.kind === "videoinput");
+    $("btnFlip").classList.toggle("show", cameras.length > 1);
+  } catch (_) {}
+  try {
+    const track = $("videoPreview").srcObject.getVideoTracks()[0];
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    $("btnTorch").classList.toggle("show", !!caps.torch);
+    torchOn = false; $("btnTorch").classList.remove("on");
+  } catch (_) {}
+}
+
+async function toggleTorch() {
+  try {
+    const track = $("videoPreview").srcObject.getVideoTracks()[0];
+    torchOn = !torchOn;
+    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+    $("btnTorch").classList.toggle("on", torchOn);
+  } catch (_) { torchOn = false; notice("Flashlight not supported on this camera.", "info"); }
+}
+
+function flipCamera() {
+  if (cameras.length < 2) return;
+  camIdx = (camIdx + 1) % cameras.length;
+  const id = cameras[camIdx].deviceId;
+  stopScanner(true);
+  startScanner(id);
+}
+
+function stopScanner(silent) {
+  if (reader) { try { reader.reset(); } catch (_) {} reader = null; }
+  $("btnStart").disabled = false; $("btnStop").disabled = true;
+  if (!silent) { userStopped = true; showOverlay("📷", "Camera is off", "Tap the button to start scanning.", "Enable camera"); }
+  $("ovBtn").style.display = "";
+}
+
+async function requestWakeLock() { try { if (navigator.wakeLock) await navigator.wakeLock.request("screen"); } catch (_) {} }
+document.addEventListener("visibilitychange", () => { if (!document.hidden && reader) requestWakeLock(); });
+
+$("btnStart").onclick = () => startScanner();
+$("btnStop").onclick = () => stopScanner();
+$("ovBtn").onclick = () => { if (typeof ZXing === "undefined") location.reload(); else startScanner(); };
+$("btnTorch").onclick = toggleTorch;
+$("btnFlip").onclick = flipCamera;
+
+/* ---------- manual / photo ---------- */
+const manualCode = () => $("manualInput").value.trim();
+$("btnCheck").onclick = () => { const c = manualCode(); if (c && !isProcessing) verifyPass(c, "lookup"); };
+$("btnAdmit").onclick = () => { const c = manualCode(); if (c && !isProcessing) verifyPass(c); };
+$("btnUndo").onclick  = () => {
+  const c = manualCode(); if (!c || isProcessing) return;
+  const pin = prompt("Admin PIN to reset entry for " + c + ":"); if (pin) verifyPass(c, "undo", pin);
+};
+$("manualInput").addEventListener("keydown", e => { if (e.key === "Enter") $("btnCheck").click(); });
+
+$("btnPhoto").onclick = () => $("photoIn").click();
+$("photoIn").onchange = async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const url = URL.createObjectURL(f);
+  try {
+    const r = await new ZXing.BrowserMultiFormatReader().decodeFromImageUrl(url);
+    verifyPass(r.getText());
+  } catch (_) { notice("No QR / barcode found in that photo. Try again closer & sharper.", "error"); }
+  URL.revokeObjectURL(url); e.target.value = "";
+};
+
+/* ---------- network ---------- */
+function jsonpFetch(url) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
+    const s = document.createElement("script"); let done = false;
+    const end = (fn, v) => { if (done) return; done = true; clearTimeout(t); try { delete window[cb]; } catch (_) {} s.remove(); fn(v); };
+    const t = setTimeout(() => end(reject, new Error("timeout")), 12000);
+    window[cb] = (d) => end(resolve, d);
+    s.onerror = () => end(reject, new Error("jsonp-failed"));
+    s.src = url + "&callback=" + cb + "&_=" + Date.now();
+    document.body.appendChild(s);
+  });
+}
+async function callBackend(url) {
+  try { const d = await jsonpFetch(url); setNet(true); return d; }
+  catch (_) {
+    try { const r = await fetch(url + "&_=" + Date.now(), { redirect: "follow" }); const d = JSON.parse(await r.text()); setNet(true); return d; }
+    catch (e) { setNet(false); throw new Error("Server unreachable. Check internet / Apps Script deployment (Anyone)."); }
+  }
+}
+function setNet(ok) { $("net").classList.toggle("off", !ok); }
+window.addEventListener("offline", () => setNet(false));
+window.addEventListener("online", () => { setNet(true); refreshStats(); });
+
+/* ---------- stats ---------- */
+function updateCounter(st) {
+  if (!st) return;
+  const left = Math.max(0, st.paid - st.entered);
+  $("sPaid").textContent = st.paid; $("sLeft").textContent = left;
+  const e = $("sIn"); e.textContent = st.entered;
+  e.classList.remove("bump"); void e.offsetWidth; e.classList.add("bump");
+  $("bar").style.width = (st.paid ? Math.min(100, st.entered / st.paid * 100) : 0) + "%";
+}
+async function refreshStats() {
+  if (isProcessing) return;
+  try { updateCounter((await callBackend(SCRIPT_WEB_APP_URL + "?action=stats&apiKey=" + encodeURIComponent(SCANNER_API_KEY))).stats); } catch (_) {}
+}
+refreshStats(); setInterval(refreshStats, 30000);
+
+/* ---------- verify ---------- */
+async function verifyPass(code, action = "", pin = "") {
+  isProcessing = true;
+  notice(action === "lookup" ? "Looking up…" : action === "undo" ? "Resetting entry…" : "Verifying ticket…", "loading");
+  let hold = 1500;
+  try {
+    let url = SCRIPT_WEB_APP_URL + "?apiKey=" + encodeURIComponent(SCANNER_API_KEY) + "&qrCode=" + encodeURIComponent(code.trim());
+    if (action) url += "&action=" + encodeURIComponent(action);
+    if (pin) url += "&pin=" + encodeURIComponent(pin);
+    const d = await callBackend(url);
+    updateCounter(d.stats);
+    hideNotice();
+
+    if (d.lookup) {
+      const ent = d.attendee && d.attendee.entryStatus === "entered";
+      showSheet(ent ? "warn" : "neutral", ent ? "ALREADY ENTERED" : "NOT ENTERED YET", d.message, d.attendee); hold = 2500;
+    } else if (d.undone) {
+      tone(520, .15); showSheet("neutral", "ENTRY RESET", "This pass can be scanned again.", d.attendee); hold = 2500;
+    } else if (d.success) {
+      tone(880, .12); vibrate([60]); showSheet("ok", "✅ ENTRY GRANTED", d.message, d.attendee, 2500);
+    } else {
+      tone(250, .35); vibrate([150, 100, 150]);
+      showSheet(d.duplicate ? "warn" : "bad", d.duplicate ? "⚠️ ALREADY USED" : "❌ NOT ALLOWED", d.message, d.attendee, 4000); hold = 2500;
+    }
+  } catch (err) { notice(err.message, "error"); }
+  finally { setTimeout(() => { isProcessing = false; }, hold); }
+}
+
+/* ---------- UI helpers ---------- */
+function showSheet(kind, big, msg, a, autoMs) {
+  a = a || {};
+  const sh = $("sheet"); sh.className = "sheet show " + kind;
+  $("shBig").textContent = big; $("shMsg").textContent = msg || "";
+  $("shName").textContent = a.name || "—"; $("shRid").textContent = a.regId || "";
+  $("shDept").textContent = (a.dept || "—") + (a.sem ? " (" + a.sem + ")" : "");
+  $("shCat").textContent = a.category || "—"; $("shGen").textContent = a.gender || "—";
+  $("shTime").textContent = a.entryTime || "—";
+  clearTimeout(sheetTimer); sheetTimer = setTimeout(hideSheet, autoMs || 4500);
+}
+function hideSheet() { $("sheet").classList.remove("show"); }
+function notice(msg, type) { const e = $("status"); e.className = "status " + type; e.textContent = msg; if (type !== "loading") setTimeout(hideNotice, 4000); }
+function hideNotice() { const e = $("status"); e.className = "status"; e.textContent = ""; }
+function tone(f, d) { try { const c = new (window.AudioContext || window.webkitAudioContext)(), o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.value = .2; o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + d); o.onended = () => c.close(); } catch (_) {} }
+function vibrate(p) { if ("vibrate" in navigator) navigator.vibrate(p); }
+
+/* ---------- boot: try auto-start; if blocked the overlay explains why ---------- */
+showOverlay("📷", "Camera is off", "Tap the button to start scanning.", "Enable camera");
+window.addEventListener("load", () => startScanner());
+</script>
+</body>
+</html>
