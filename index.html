@@ -233,6 +233,7 @@ input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:poin
       <button data-send="pass">🎟 Entry pass</button>
       <button data-send="entry">✅ Entry confirmation</button>
       <button id="dlPass" class="btn-gold">⬇ Download pass</button>
+      <button id="linkPass">🔗 Copy link</button>
     </div>
     <div class="mut" style="margin-top:8px">Emails go to the address saved in the database — save first if you changed it.</div>
   </div>
@@ -379,6 +380,7 @@ async function run(act, id, v) {
   const r = DATA.rows.find(x => x.regId === id); if (!r) return;
   if (act === "edit") return openEdit(id);
   if (act === "dl") return downloadPass(id);
+  if (act === "link" || act === "wa") return sharePass(r, act);
   const q = { pay: `Set ${id} to ${v}?` + (v === "Paid" ? " The entry pass will be emailed." : ""), pass: `Resend entry pass to ${r.email}?`,
               reg: `Resend registration email to ${r.email}?`, entrymail: `Resend entry confirmation to ${r.email}?`, entry: `Set ${id} to ${v}?` }[act];
   if (!confirm(q)) return;
@@ -411,7 +413,7 @@ $("attn").addEventListener("click", (e) => {
 function openMenu(btn) {
   const id = btn.dataset.menu, r = DATA.rows.find(x => x.regId === id); if (!r) return;
   const paid = lc(r.pay) === "paid", ent = lc(r.entry) === "entered", E = esc(id);
-  const items = [["edit", "✎ Edit details"], paid && ["dl", "⬇ Download pass (PNG)"], paid && ["pass", "🎟 Resend entry pass"], ["reg", "✉ Resend registration email"],
+  const items = [["edit", "✎ Edit details"], paid && ["dl", "⬇ Download pass (PNG)"], paid && ["pass", "🎟 Resend entry pass"], paid && r.qr && ["link", "🔗 Copy pass download link"], paid && r.qr && r.phone && ["wa", "💬 Send pass link on WhatsApp"], ["reg", "✉ Resend registration email"],
     ent && ["entrymail", "✅ Resend entry confirmation"], "sep", lc(r.pay) !== "cancelled" && ["pay|Cancelled", "✖ Cancel registration"]].filter(Boolean);
   $("menu").innerHTML = items.map(i => i === "sep" ? '<div class="sep"></div>' : `<button data-a="${i[0]}" data-id="${E}">${i[1]}</button>`).join("");
   const m = $("menu"); m.style.display = "block";
@@ -468,6 +470,19 @@ $("exportBtn").addEventListener("click", (e) => {
 $("menu").addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (!b) return; $("menu").style.display = "none"; ({ xa: exportAttendees, xe: exportEmails, xc: copyEmails, xz: exportZip })[b.dataset.x](); });
 $("selZip").addEventListener("click", exportZip); $("selEmails").addEventListener("click", exportEmails);
 
+/* ---------- pass link (opens pass.html with a Download button) ---------- */
+const passLink = (r) => new URL("pass.html", location.href).href + "?t=" + encodeURIComponent(r.qr);
+async function sharePass(r, act) {
+  const link = passLink(r);
+  if (act === "link") {
+    try { await navigator.clipboard.writeText(link); toast("Pass link copied for " + r.name); } catch (_) { prompt("Copy this link:", link); }
+    return;
+  }
+  let ph = String(r.phone).replace(/\D/g, ""); if (ph.length === 10) ph = "91" + ph;
+  const msg = `Hi ${r.name}, here is your NEXORA 2026 entry pass (${r.regId}). Tap to view & download it: ${link}`;
+  window.open("https://wa.me/" + ph + "?text=" + encodeURIComponent(msg), "_blank");
+}
+
 /* ---------- pass image ---------- */
 const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
 async function passCanvas(r) {
@@ -505,6 +520,7 @@ async function downloadPass(id) {
   c.toBlob((b) => download(r.regId + "-pass.png", b), "image/png"); toast("Pass downloaded · " + r.name);
 }
 $("dlPass").addEventListener("click", () => { if (EDIT) downloadPass(EDIT.regId); });
+$("linkPass").addEventListener("click", () => { if (EDIT) EDIT.qr ? sharePass(EDIT, "link") : toast("No QR code for this attendee."); });
 
 /* ---------- edit modal ---------- */
 const opts = (list, cur, blank) => (blank ? `<option value="">Not set</option>` : "") + (cur && !list.includes(cur) ? [cur, ...list] : list).map(x => `<option${x === cur ? " selected" : ""}>${esc(x)}</option>`).join("");
