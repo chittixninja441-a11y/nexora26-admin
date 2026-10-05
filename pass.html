@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#050507">
+<title>NEXORA 2026 — Your Entry Pass</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#050507;color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:18px}
+.wrap{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;align-items:center}
+.badge{font-size:10px;font-weight:800;letter-spacing:3px;color:#d4af37;text-transform:uppercase;text-align:center}
+h1{font-size:20px;text-align:center}
+#pass{width:100%;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.8);display:none}
+button{font:inherit;cursor:pointer;border:none;border-radius:12px;padding:14px;font-size:14px;font-weight:800;width:100%}
+.gold{background:linear-gradient(135deg,#f5e3a9,#d4af37);color:#08080a}
+.dark{background:#1f1f26;color:#cbd5e1;border:1px solid #33333d}
+.msg{background:#0e0e13;border:1px solid #2a2410;border-radius:12px;padding:18px;text-align:center;color:#cbd5e1;line-height:1.5;width:100%}
+.msg.err{border-color:#7f1d1d;color:#f87171}
+.hint{font-size:11px;color:#64748b;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div><div class="badge">Master Fresher</div><h1>NEXORA <span style="color:#d4af37">2026</span> · Entry Pass</h1></div>
+  <div id="msg" class="msg">Loading your pass…</div>
+  <canvas id="pass" width="640" height="940"></canvas>
+  <button id="dl" class="gold" style="display:none">⬇ Download pass (PNG)</button>
+  <button id="share" class="dark" style="display:none">Share pass</button>
+  <div class="hint" id="hint" style="display:none">Show the QR code at the entrance. This pass works for one entry only.</div>
+</div>
+
+<script>
+/* Same Apps Script /exec URL and key as the scanner / admin page */
+const SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxh4eXyvRSSDjJcD2KL470Td6H42YW4_xBp9vO9VgRuAMcyMkqJw-956OnKOoHZZq_-/exec";
+const SCANNER_API_KEY    = "NEXORA_SECURE_SCAN_KEY_2026_x9F2";
+const EV = { name: "NEXORA 2026", tag: "New People • New Stories • Same Dreams", date: "13 October 2026", time: "11:30 AM – 5:30 PM" };
+
+const $ = (id) => document.getElementById(id);
+function fail(m) { $("msg").className = "msg err"; $("msg").textContent = m; }
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb_" + Date.now(), s = document.createElement("script");
+    const done = (fn, v) => { clearTimeout(t); delete window[cb]; s.remove(); fn(v); };
+    const t = setTimeout(() => done(reject, new Error("timeout")), 20000);
+    window[cb] = (d) => done(resolve, d);
+    s.onerror = () => done(reject, new Error("failed"));
+    s.src = url + "&callback=" + cb;
+    document.body.appendChild(s);
+  });
+}
+
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+async function draw(p) {
+  const c = $("pass"), x = c.getContext("2d"), W = c.width, H = c.height;
+  const GOLD = "#d4af37", YEL = "#ffd700", F = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const text = (t, px, py, font, color, al) => { x.font = font; x.fillStyle = color; x.textAlign = al || "center"; x.fillText(t, px, py); };
+  const fit = (t, font, maxW) => { let s = parseInt(font.match(/(\d+)px/)[1]); while (s > 12) { x.font = font.replace(/\d+px/, s + "px"); if (x.measureText(t).width <= maxW) break; s -= 2; } return font.replace(/\d+px/, s + "px"); };
+
+  x.fillStyle = "#050505"; x.fillRect(0, 0, W, H);
+  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(18, 18, W - 36, H - 36);
+  text("MASTER FRESHER", W / 2, 80, `700 18px ${F}`, GOLD);
+  text(EV.name, W / 2, 140, `900 56px ${F}`, "#fff");
+  text(EV.tag, W / 2, 175, `400 18px ${F}`, "#ccc");
+  x.strokeStyle = GOLD; x.lineWidth = 2; x.setLineDash([6, 6]); x.beginPath(); x.moveTo(50, 205); x.lineTo(W - 50, 205); x.stroke(); x.setLineDash([]);
+  [["NAME", p.name], ["DEPARTMENT", p.dept]].concat(p.sem ? [["SEMESTER", p.sem]] : [], [["CATEGORY", p.category], ["PAYMENT", "VERIFIED"]]).forEach((r, i) => {
+    const y = 255 + i * 46;
+    text(r[0], 60, y, `700 15px ${F}`, "#8e8e93", "left");
+    text(r[1] || "—", W - 60, y, fit(r[1] || "—", `700 22px ${F}`, 340), "#fff", "right");
+  });
+  text("REGISTRATION ID", W / 2, 470, `700 15px ${F}`, "#8e8e93");
+  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(W / 2 - 150, 485, 300, 56);
+  text(p.regId, W / 2, 525, `900 30px ${F}`, YEL);
+
+  const qr = qrcode(0, "M"); qr.addData(p.qr); qr.make();
+  const img = await loadImg(qr.createDataURL(10, 0));
+  x.fillStyle = "#fff"; x.fillRect(W / 2 - 150, 570, 300, 320); x.imageSmoothingEnabled = false;
+  x.drawImage(img, W / 2 - 130, 585, 260, 260);
+  text("SCAN AT ENTRANCE", W / 2, 875, `900 15px ${F}`, "#000");
+  text(EV.date + "  ·  " + EV.time, W / 2, 915, `700 16px ${F}`, YEL);
+}
+
+const toBlob = () => new Promise(r => $("pass").toBlob(r, "image/png"));
+
+(async function init() {
+  const q = new URLSearchParams(location.search), t = q.get("t");
+  if (typeof qrcode === "undefined") return fail("Couldn't load the QR library. Check your internet and reload.");
+  let pass;
+
+  if (q.get("id") && q.get("q")) {
+    // Self-contained link: the pass details travel inside the URL (no server lookup)
+    pass = { name: q.get("n"), regId: q.get("id"), dept: q.get("d"), sem: q.get("s"), category: q.get("c"), qr: q.get("q") };
+    if (q.get("dt")) EV.date = q.get("dt");
+    if (q.get("tm")) EV.time = q.get("tm");
+  } else if (t) {
+    try {
+      const d = await jsonp(SCRIPT_WEB_APP_URL + "?action=passinfo&apiKey=" + encodeURIComponent(SCANNER_API_KEY) + "&qrCode=" + encodeURIComponent(t));
+      if (!d.success) return fail(d.message || "Pass not available.");
+      pass = d.pass;
+    } catch (e) { return fail("Couldn't reach the server. Check your internet and try again."); }
+  } else {
+    return fail("This link is incomplete. Please open the button from your pass email again.");
+  }
+
+  await draw(pass);
+  $("msg").style.display = "none"; $("pass").style.display = "block"; $("hint").style.display = "block";
+  $("dl").style.display = "block";
+  const fname = pass.regId + "-pass.png";
+
+  $("dl").onclick = async () => {
+    const b = await toBlob(), a = document.createElement("a");
+    a.href = URL.createObjectURL(b); a.download = fname; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  if (navigator.canShare) {
+    const file = new File([await toBlob()], fname, { type: "image/png" });
+    if (navigator.canShare({ files: [file] })) {
+      $("share").style.display = "block";
+      $("share").onclick = () => navigator.share({ files: [file], title: "NEXORA Entry Pass" }).catch(() => {});
+    }
+  }
+})();
+</script>
+</body>
+</html>
