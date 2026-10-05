@@ -3,95 +3,186 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEXORA 2026 — Admin Dashboard</title>
+<meta name="theme-color" content="#07070a">
+<title>NEXORA 2026 — Admin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#050507;color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;padding:12px}
-  .wrap{max-width:1100px;margin:0 auto}
-  h1{font-size:20px;font-weight:900;letter-spacing:1px}
-  .gold{color:#d4af37}
-  button,select,input{font:inherit}
-  button{cursor:pointer;border:1px solid #453916;background:#1f1f26;color:#f5e3a9;border-radius:6px;padding:6px 10px;font-weight:700;font-size:12px}
-  button.primary{background:linear-gradient(135deg,#f5e3a9,#d4af37);color:#08080a;border:none}
-  button.danger{color:#f87171;border-color:#5b1d1d}
-  button:disabled{opacity:.35;cursor:not-allowed}
-  input,select{background:#0e0e13;border:1px solid #2d2d38;color:#fff;border-radius:6px;padding:7px 9px;outline:none}
-  .top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-  .muted{color:#94a3b8;font-size:11px}
-  #login{max-width:320px;margin:18vh auto;text-align:center;display:flex;flex-direction:column;gap:10px}
-  #app{display:none}
-  .tabs{display:flex;gap:6px;margin-bottom:12px}
-  .tabs button.on{background:#d4af37;color:#08080a}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
-  .card{background:#0e0e13;border:1px solid #2a2410;border-radius:10px;padding:10px 12px}
-  .card b{display:block;font-size:24px;color:#ffd700}
-  .card span{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;font-weight:800}
-  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
-  .panel{background:#0e0e13;border:1px solid #2a2410;border-radius:10px;padding:12px}
-  .panel h3{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#d4af37;margin-bottom:8px}
-  .bar-row{margin:7px 0}
-  .bar-row .l{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
-  .bar{height:6px;background:#1f1f26;border-radius:3px;overflow:hidden}
-  .bar i{display:block;height:100%;background:linear-gradient(90deg,#d4af37,#4ade80)}
-  .filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-  .filters input{flex:1;min-width:160px}
-  .tbl{overflow-x:auto;border:1px solid #2a2410;border-radius:10px}
-  table{width:100%;border-collapse:collapse;min-width:820px}
-  th,td{padding:7px 9px;text-align:left;border-bottom:1px solid #1a1a22;white-space:nowrap;font-size:12px}
-  th{background:#0a0a0c;color:#d4af37;font-size:10px;letter-spacing:1px;text-transform:uppercase;position:sticky;top:0}
-  .pill{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:800;border:1px solid}
-  .p-paid,.p-entered{color:#4ade80;border-color:#16a34a;background:#062312}
-  .p-pending{color:#facc15;border-color:#715918;background:#1e1b10}
-  .p-cancelled,.p-duplicate{color:#f87171;border-color:#dc2626;background:#270d0d}
-  .p-no{color:#94a3b8;border-color:#33333d}
-  .acts{display:flex;gap:4px}
-  .modal{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:flex-start;justify-content:center;overflow-y:auto;z-index:30;padding:16px}
-  .modal.show{display:flex}
-  .mbox{background:#0e0e13;border:1.5px solid #d4af37;border-radius:14px;padding:16px;width:100%;max-width:520px}
-  .mbox h2{font-size:15px;color:#ffd700;margin-bottom:10px}
-  .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .fgrid label{display:flex;flex-direction:column;gap:3px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;font-weight:700}
-  .fgrid label.full{grid-column:1/-1}
-  .fgrid input,.fgrid select{width:100%;font-size:13px;text-transform:none;letter-spacing:0;color:#fff}
-  .msec{margin-top:12px;padding-top:10px;border-top:1px dashed #2e2612}
-  .msec .t{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#d4af37;margin-bottom:6px;font-weight:800}
-  .mrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .chk{font-size:12px;color:#cbd5e1;display:flex;gap:6px;align-items:center;margin-top:8px}
-  #toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#1f1f26;border:1px solid #d4af37;padding:9px 14px;border-radius:8px;display:none;z-index:9;max-width:90vw}
+:root{--bg:#07070a;--panel:#0f0f15;--panel2:#14141c;--line:#22222d;--gold:#d4af37;--gold2:#ffd700;--text:#f3f4f6;--mut:#8b93a7;--ok:#4ade80;--warn:#facc15;--bad:#f87171;--info:#7dd3fc;--r:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:14px;line-height:1.4}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:8px 12px;font-weight:700;font-size:12px;transition:.15s;white-space:nowrap}
+button:hover{border-color:#3a3a4a;background:#1b1b26}
+button:disabled{opacity:.4;cursor:not-allowed}
+.btn-gold{background:linear-gradient(135deg,#f5e3a9,var(--gold));color:#09090c;border:none}
+.btn-gold:hover{filter:brightness(1.06);background:linear-gradient(135deg,#f5e3a9,var(--gold))}
+.btn-danger{color:var(--bad);border-color:#4a1d1d}
+.btn-ghost{background:transparent}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 11px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--gold)}
+.mut{color:var(--mut);font-size:12px}
+.gold{color:var(--gold)}
+
+/* login */
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:28px 24px;text-align:center;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.logo{width:48px;height:48px;border-radius:14px;margin:0 auto;background:linear-gradient(135deg,#f5e3a9,var(--gold));color:#09090c;font-weight:900;font-size:22px;display:flex;align-items:center;justify-content:center}
+.login-card h1{font-size:20px;letter-spacing:1px}
+#loginMsg{color:var(--bad);min-height:16px;font-size:12px}
+
+/* app shell */
+#app{display:none}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(7,7,10,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topin{max-width:1180px;margin:0 auto;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand .logo{width:34px;height:34px;border-radius:10px;font-size:16px;margin:0}
+.brand b{font-size:15px;letter-spacing:.5px;display:block}
+.tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.main{max-width:1180px;margin:0 auto;padding:14px}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:14px;max-width:100%;overflow-x:auto}
+.seg button{border:none;background:transparent;padding:8px 16px;border-radius:9px;color:var(--mut)}
+.seg button.on{background:var(--gold);color:#09090c}
+.seg .n{background:rgba(255,255,255,.12);border-radius:8px;padding:0 6px;margin-left:6px;font-size:10px}
+.seg button.on .n{background:rgba(0,0,0,.18)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px}
+.dot.off{background:var(--bad)}
+
+/* overview */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--gold))}
+.kpi span{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--mut);font-weight:800}
+.kpi b{display:block;font-size:26px;margin-top:2px;color:var(--c,var(--gold2))}
+.kpi small{color:var(--mut);font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.panel h3{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:10px}
+.ring-wrap{display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:120px;height:120px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring b{font-size:24px;color:var(--gold2)}
+.attn{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.attn:last-child{border:none}
+.attn b{font-size:18px;color:var(--warn)}
+.bar-row{margin:9px 0}
+.bar-row .l{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;gap:8px}
+.bar{height:7px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--ok));border-radius:4px}
+
+/* attendees */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.toolbar .search{flex:1 1 220px;position:relative}
+.toolbar .search input{padding-left:32px}
+.toolbar .search::before{content:"⌕";position:absolute;left:11px;top:7px;color:var(--mut);font-size:16px}
+.toolbar select{width:auto;flex:0 1 150px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{border-radius:20px;padding:5px 12px;background:var(--panel);color:var(--mut)}
+.chip.on{background:rgba(212,175,55,.15);border-color:var(--gold);color:var(--gold2)}
+.selbar{display:none;align-items:center;gap:8px;flex-wrap:wrap;background:rgba(212,175,55,.1);border:1px solid var(--gold);border-radius:12px;padding:8px 12px;margin-bottom:10px}
+.selbar.show{display:flex}
+.selbar b{margin-right:auto}
+.tbl{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{background:#0b0b10;color:var(--mut);font-size:10px;letter-spacing:1.2px;text-transform:uppercase;text-align:left;padding:10px;font-weight:800}
+td{padding:10px;border-top:1px solid var(--line);vertical-align:middle}
+tr:hover td{background:rgba(255,255,255,.015)}
+tr.sel td{background:rgba(212,175,55,.06)}
+.who{display:flex;align-items:center;gap:10px;min-width:180px}
+.av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2a2410,#4a3d12);color:var(--gold2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex:none}
+.who b{display:block;font-size:13px}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:800;border:1px solid;letter-spacing:.3px}
+.p-paid,.p-entered{color:var(--ok);border-color:#166534;background:#06210f}
+.p-pending{color:var(--warn);border-color:#715918;background:#1e1b10}
+.p-cancelled,.p-duplicate{color:var(--bad);border-color:#7f1d1d;background:#250d0d}
+.p-no{color:var(--mut);border-color:var(--line)}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+.kebab{padding:8px 11px}
+input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);cursor:pointer}
+.empty{padding:40px 16px;text-align:center;color:var(--mut)}
+
+/* popover menu */
+#menu{position:fixed;z-index:50;background:var(--panel2);border:1px solid #33333f;border-radius:12px;padding:5px;min-width:210px;box-shadow:0 14px 40px rgba(0,0,0,.7);display:none}
+#menu button{display:block;width:100%;text-align:left;border:none;background:transparent;padding:9px 11px;border-radius:8px;font-size:13px;font-weight:600}
+#menu button:hover{background:#22222e}
+#menu .sep{height:1px;background:var(--line);margin:4px 0}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:40;padding:14px;overflow-y:auto}
+.modal.show{display:flex}
+.mbox{background:var(--panel);border:1px solid var(--gold);border-radius:18px;padding:18px;width:100%;max-width:540px;max-height:96vh;overflow-y:auto}
+.mbox h2{font-size:16px;color:var(--gold2);margin-bottom:12px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fgrid label{display:flex;flex-direction:column;gap:4px;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mut);font-weight:800}
+.fgrid .full{grid-column:1/-1}
+.fgrid input,.fgrid select{text-transform:none;letter-spacing:0;font-size:14px;color:var(--text)}
+.msec{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.msec .t{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;font-weight:800}
+.mrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:#cbd5e1}
+
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:#1b1b26;border:1px solid var(--gold);padding:10px 16px;border-radius:12px;z-index:90;max-width:92vw;transition:.25s;font-weight:600}
+#toast.show{opacity:1;transform:translateX(-50%)}
+
+@media(max-width:760px){
+  .fgrid{grid-template-columns:1fr}
+  .tbl{background:transparent;border:none}
+  table,thead,tbody,tr,td{display:block}
+  thead{display:none}
+  tr{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;padding:8px 12px}
+  td{border:none!important;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;background:none!important}
+  td::before{content:attr(data-label);color:var(--mut);font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:800;flex:none}
+  td.nolabel::before{display:none}
+  td.acts-td{justify-content:flex-end;padding-top:8px}
+  .mbox{border-radius:18px 18px 0 0;align-self:flex-end;max-height:92vh}
+  .modal{align-items:flex-end;padding:0}
+  .hide-m{display:none}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
 
-  <div id="login">
+<div id="login">
+  <div class="login-card">
+    <div class="logo">N</div>
     <h1>NEXORA <span class="gold">2026</span></h1>
-    <div class="muted">Admin Dashboard</div>
-    <input type="password" id="pinInput" placeholder="Admin PIN" autocomplete="off">
-    <button class="primary" id="loginBtn">Sign in</button>
-    <div id="loginMsg" class="muted" style="color:#f87171"></div>
+    <div class="mut">Admin dashboard · enter PIN to continue</div>
+    <input type="password" id="pinInput" placeholder="Admin PIN" autocomplete="off" inputmode="numeric">
+    <button class="btn-gold" id="loginBtn" style="padding:11px">Sign in</button>
+    <div id="loginMsg"></div>
   </div>
+</div>
 
-  <div id="app">
-    <div class="top">
-      <div><h1>NEXORA <span class="gold">2026</span> · Admin</h1><div class="muted" id="updated">—</div></div>
-      <div style="display:flex;gap:6px">
-        <button id="refreshBtn">↻ Refresh</button>
-        <button id="bulkBtn">✉ Send pending passes</button>
-        <button id="csvBtn">⬇ CSV</button>
-        <button id="logoutBtn" class="danger">Sign out</button>
-      </div>
+<div id="app">
+  <div class="topbar"><div class="topin">
+    <div class="brand"><div class="logo">N</div><div><b>NEXORA <span class="gold">2026</span> · Admin</b><span class="mut" id="updated"><span class="dot" id="net"></span>—</span></div></div>
+    <div class="tools">
+      <button id="refreshBtn" title="Refresh">↻ Refresh</button>
+      <button id="exportBtn">⬇ Export ▾</button>
+      <button id="bulkBtn" class="btn-gold">✉ Send pending passes</button>
+      <button id="logoutBtn" class="btn-danger">Sign out</button>
     </div>
+  </div></div>
 
-    <div class="tabs">
+  <div class="main">
+    <div class="seg" id="tabs">
       <button data-tab="overview" class="on">Overview</button>
-      <button data-tab="people">Attendees</button>
-      <button data-tab="log">Entry Log</button>
+      <button data-tab="people">Attendees<span class="n" id="nPeople">0</span></button>
+      <button data-tab="log">Entry log</button>
     </div>
 
     <section id="tab-overview">
-      <div class="cards" id="cards"></div>
-      <div class="grid2">
+      <div class="kpis" id="kpis"></div>
+      <div class="grid">
+        <div class="panel"><h3>Check-in progress</h3>
+          <div class="ring-wrap">
+            <div class="ring"><svg width="120" height="120" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#1b1b26" stroke-width="12"/><circle id="ringArc" cx="60" cy="60" r="52" fill="none" stroke="url(#g)" stroke-width="12" stroke-linecap="round" stroke-dasharray="0 326.7"/><defs><linearGradient id="g"><stop offset="0" stop-color="#d4af37"/><stop offset="1" stop-color="#4ade80"/></linearGradient></defs></svg>
+              <div><b id="ringPct">0%</b><span class="mut">checked in</span></div></div>
+            <div id="ringText" class="mut" style="line-height:1.8"></div>
+          </div>
+        </div>
+        <div class="panel"><h3>Needs attention</h3><div id="attn"></div></div>
         <div class="panel"><h3>Gender</h3><div id="byGender"></div></div>
         <div class="panel"><h3>Department</h3><div id="byDept"></div></div>
         <div class="panel"><h3>Category</h3><div id="byCat"></div></div>
@@ -100,49 +191,56 @@
     </section>
 
     <section id="tab-people" style="display:none">
-      <div class="filters">
-        <input id="q" placeholder="Search name, ID, email, phone, txn…">
-        <select id="fPay"><option value="">Payment: all</option><option>Paid</option><option>Pending</option><option>Cancelled</option><option>Duplicate</option></select>
+      <div class="toolbar">
+        <div class="search"><input id="q" placeholder="Search name, ID, email, phone, txn…  ( / )"></div>
         <select id="fEntry"><option value="">Entry: all</option><option>Entered</option><option>Not Entered</option></select>
         <select id="fGender"></select>
         <select id="fDept"></select>
       </div>
-      <div class="muted" id="count" style="margin-bottom:6px"></div>
+      <div class="chips" id="chips"></div>
+      <div class="selbar" id="selbar">
+        <b id="selCount">0 selected</b>
+        <button id="selZip" class="btn-gold">⬇ Passes (ZIP)</button>
+        <button id="selEmails">⬇ Emails (CSV)</button>
+        <button id="selClear" class="btn-ghost">Clear</button>
+      </div>
+      <div class="mut" id="count" style="margin-bottom:8px"></div>
       <div class="tbl"><table>
-        <thead><tr><th>ID</th><th>Name</th><th>Dept</th><th>Gender</th><th>Cat</th><th>Method</th><th>₹</th><th>Payment</th><th>Entry</th><th>Actions</th></tr></thead>
+        <thead><tr><th style="width:34px"><input type="checkbox" id="selAll"></th><th>Attendee</th><th>Dept / Category</th><th class="hide-m">Gender</th><th>Payment</th><th>Entry</th><th></th></tr></thead>
         <tbody id="rows"></tbody>
       </table></div>
     </section>
 
     <section id="tab-log" style="display:none">
-      <div class="tbl"><table style="min-width:600px">
+      <div class="tbl"><table>
         <thead><tr><th>Time</th><th>Code / ID</th><th>Name</th><th>Gender</th><th>Result</th></tr></thead>
         <tbody id="logRows"></tbody>
       </table></div>
     </section>
   </div>
 </div>
-<div class="modal" id="modal">
-  <div class="mbox">
-    <h2 id="mTitle">Edit</h2>
-    <div class="fgrid" id="mBody"></div>
-    <label class="chk"><input type="checkbox" id="e_resend"> Re-send registration email after saving</label>
-    <div class="msec">
-      <div class="t">Resend emails</div>
-      <div class="mrow">
-        <button data-send="reg">✉ Registration</button>
-        <button data-send="pass">🎟 Entry pass</button>
-        <button data-send="entry">✅ Entry confirmation</button>
-        <button class="primary" id="dlPass">⬇ Download pass (PNG)</button>
-      </div>
-      <div class="muted" style="margin-top:6px">Sent to the email currently saved in the database. Save first if you changed it.</div>
+
+<div id="menu"></div>
+
+<div class="modal" id="modal"><div class="mbox">
+  <h2 id="mTitle">Edit</h2>
+  <div class="fgrid" id="mBody"></div>
+  <label class="chk"><input type="checkbox" id="e_resend"> Re-send registration email after saving</label>
+  <div class="msec">
+    <div class="t">Emails &amp; pass</div>
+    <div class="mrow">
+      <button data-send="reg">✉ Registration</button>
+      <button data-send="pass">🎟 Entry pass</button>
+      <button data-send="entry">✅ Entry confirmation</button>
+      <button id="dlPass" class="btn-gold">⬇ Download pass</button>
     </div>
-    <div class="mrow" style="margin-top:14px;justify-content:flex-end">
-      <button id="mCancel">Cancel</button>
-      <button class="primary" id="mSave">Save changes</button>
-    </div>
+    <div class="mut" style="margin-top:8px">Emails go to the address saved in the database — save first if you changed it.</div>
   </div>
-</div>
+  <div class="mrow" style="margin-top:16px;justify-content:flex-end">
+    <button id="mCancel">Cancel</button><button class="btn-gold" id="mSave">Save changes</button>
+  </div>
+</div></div>
+
 <div id="toast"></div>
 
 <script>
@@ -150,18 +248,28 @@
 const SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxh4eXyvRSSDjJcD2KL470Td6H42YW4_xBp9vO9VgRuAMcyMkqJw-956OnKOoHZZq_-/exec";
 const SCANNER_API_KEY    = "NEXORA_SECURE_SCAN_KEY_2026_x9F2";
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say", "Not specified"];
+const DEPTS = ["Chemistry", "Biotechnology", "Computer Science", "Zoology", "PGDCA"];
+const CATS = ["Junior", "Senior"], METHODS = ["Cash", "Online"], PAYS = ["Pending", "Paid", "Cancelled"];
+const EV = { name: "NEXORA 2026", tag: "New People • New Stories • Same Dreams", date: "13 October 2026", time: "11:30 AM – 5:30 PM", venue: "Tamasha Balle Balle Restaurant, Bilaspur" };
 
-let PIN = "", DATA = { rows: [], log: [] }, timer = null;
+let PIN = "", DATA = { rows: [], log: [] }, timer = null, EDIT = null, payChip = "";
+const SEL = new Set();
 const $ = (id) => document.getElementById(id);
+const lc = (s) => String(s || "").toLowerCase();
 const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const gOf = (r) => GENDERS.find(g => lc(g) === lc(r.gender)) || "Not specified";
+const isDup = (r) => /duplicate/i.test(r.pay) || /duplicate/i.test(r.regId);
+const pill = (t, c) => `<span class="pill p-${c}">${esc(t || "—")}</span>`;
+const initials = (n) => (String(n).trim().split(/\s+/).slice(0, 2).map(w => w[0] || "").join("") || "?").toUpperCase();
 
-/* ---------- network (JSONP, fetch fallback) ---------- */
+function toast(m) { const t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 3200); }
+
+/* ---------- network ---------- */
 function jsonp(url) {
   return new Promise((resolve, reject) => {
-    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6);
-    const s = document.createElement("script");
+    const cb = "cb_" + Date.now() + "_" + Math.floor(Math.random() * 1e6), s = document.createElement("script");
     const done = (fn, v) => { clearTimeout(t); delete window[cb]; s.remove(); fn(v); };
-    const t = setTimeout(() => done(reject, new Error("timeout")), 20000);
+    const t = setTimeout(() => done(reject, new Error("timeout")), 25000);
     window[cb] = (d) => done(resolve, d);
     s.onerror = () => done(reject, new Error("jsonp-failed"));
     s.src = url + "&callback=" + cb + "&_=" + Date.now();
@@ -169,288 +277,288 @@ function jsonp(url) {
   });
 }
 async function api(action, extra = {}) {
-  const qs = new URLSearchParams({ apiKey: SCANNER_API_KEY, action, pin: PIN, ...extra });
-  const url = SCRIPT_WEB_APP_URL + "?" + qs.toString();
-  try { return await jsonp(url); }
+  const url = SCRIPT_WEB_APP_URL + "?" + new URLSearchParams({ apiKey: SCANNER_API_KEY, action, pin: PIN, ...extra });
+  try { const d = await jsonp(url); $("net").classList.remove("off"); return d; }
   catch (_) {
-    try { return await (await fetch(url + "&_=" + Date.now())).json(); }
-    catch (e) { throw new Error("Server unreachable. Check internet / deployment."); }
+    try { const d = await (await fetch(url + "&_=" + Date.now())).json(); $("net").classList.remove("off"); return d; }
+    catch (e) { $("net").classList.add("off"); throw new Error("Server unreachable. Check internet / deployment."); }
   }
 }
 
-/* ---------- helpers ---------- */
-function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 3000); }
-const gOf = (r) => GENDERS.find(g => g.toLowerCase() === (r.gender || "").toLowerCase()) || "Not specified";
-const isDup = (r) => /duplicate/i.test(r.pay) || /duplicate/i.test(r.regId);
-const pill = (txt, cls) => `<span class="pill p-${cls}">${esc(txt || "—")}</span>`;
-const lc = (s) => String(s || "").toLowerCase();
-
-/* ---------- load / render ---------- */
+/* ---------- load ---------- */
 async function load(showErr) {
   try {
     const d = await api("admindata");
     if (!d.success) { if (showErr) $("loginMsg").textContent = d.message; return false; }
     DATA = d; render();
-    $("updated").textContent = "Updated " + d.serverTime + (d.quota != null ? " · emails left today: " + d.quota : "");
+    $("updated").innerHTML = `<span class="dot" id="net"></span>Updated ${esc(d.serverTime)}` + (d.quota != null ? ` · ✉ ${d.quota} emails left today` : "");
     return true;
   } catch (e) { if (showErr) $("loginMsg").textContent = e.message; else toast(e.message); return false; }
 }
 
-function tally(rows, keyFn) {
+/* ---------- overview ---------- */
+function tally(rows, fn) {
   const m = {};
-  rows.forEach(r => {
-    const k = keyFn(r) || "—";
-    m[k] = m[k] || { reg: 0, paid: 0, entered: 0 };
-    m[k].reg++;
-    if (lc(r.pay) === "paid") { m[k].paid++; if (lc(r.entry) === "entered") m[k].entered++; }
-  });
+  rows.forEach(r => { const k = fn(r) || "—"; m[k] = m[k] || { reg: 0, paid: 0, in: 0 }; m[k].reg++; if (lc(r.pay) === "paid") { m[k].paid++; if (lc(r.entry) === "entered") m[k].in++; } });
   return m;
 }
 function bars(el, m, order) {
-  const keys = (order || Object.keys(m)).filter(k => m[k]);
-  const max = Math.max(1, ...keys.map(k => m[k].reg));
-  $(el).innerHTML = keys.map(k => `<div class="bar-row">
-    <div class="l"><span>${esc(k)}</span><span class="muted">${m[k].reg} reg · ${m[k].paid} paid · <b style="color:#4ade80">${m[k].entered} in</b></span></div>
-    <div class="bar"><i style="width:${m[k].reg / max * 100}%"></i></div></div>`).join("") || '<div class="muted">No data</div>';
+  const keys = (order || Object.keys(m)).filter(k => m[k]), max = Math.max(1, ...keys.map(k => m[k].reg));
+  $(el).innerHTML = keys.map(k => `<div class="bar-row"><div class="l"><span>${esc(k)}</span><span class="mut">${m[k].reg} reg · ${m[k].paid} paid · <b style="color:var(--ok)">${m[k].in} in</b></span></div><div class="bar"><i style="width:${m[k].reg / max * 100}%"></i></div></div>`).join("") || '<div class="mut">No data yet</div>';
 }
 
 function render() {
-  const rows = DATA.rows.filter(r => !isDup(r));
-  const paid = rows.filter(r => lc(r.pay) === "paid");
-  const entered = paid.filter(r => lc(r.entry) === "entered");
-  const cards = [
-    ["Registered", rows.length], ["Paid", paid.length],
-    ["Pending", rows.filter(r => lc(r.pay) === "pending").length],
-    ["Cancelled", rows.filter(r => lc(r.pay) === "cancelled").length],
-    ["Entered", entered.length + " / " + paid.length],
-    ["Revenue", "₹" + paid.reduce((a, r) => a + r.amount, 0).toLocaleString("en-IN")]
-  ];
-  $("cards").innerHTML = cards.map(c => `<div class="card"><span>${c[0]}</span><b>${c[1]}</b></div>`).join("");
+  const rows = DATA.rows.filter(r => !isDup(r)), paid = rows.filter(r => lc(r.pay) === "paid");
+  const inn = paid.filter(r => lc(r.entry) === "entered"), pend = rows.filter(r => lc(r.pay) === "pending");
+  const canc = rows.filter(r => lc(r.pay) === "cancelled"), noPass = paid.filter(r => lc(r.passSent) !== "yes");
+  const rev = paid.reduce((a, r) => a + r.amount, 0), pct = paid.length ? Math.round(inn.length / paid.length * 100) : 0;
 
-  bars("byGender", tally(rows, gOf), GENDERS);
-  bars("byDept", tally(rows, r => r.dept));
-  bars("byCat", tally(rows, r => r.category));
-  bars("byMethod", tally(rows, r => r.method));
+  const K = [["Registered", rows.length, "", "var(--info)"], ["Paid", paid.length, rows.length ? Math.round(paid.length / rows.length * 100) + "% of registered" : "", "var(--ok)"],
+    ["Pending", pend.length, "awaiting payment", "var(--warn)"], ["Cancelled", canc.length, "", "var(--bad)"],
+    ["Checked in", inn.length, "of " + paid.length + " paid", "var(--gold2)"], ["Revenue", "₹" + rev.toLocaleString("en-IN"), "from paid", "var(--gold2)"]];
+  $("kpis").innerHTML = K.map(k => `<div class="kpi" style="--c:${k[3]}"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}&nbsp;</small></div>`).join("");
 
-  // filter dropdowns (keep current selection)
+  $("ringArc").setAttribute("stroke-dasharray", (pct * 3.267) + " 326.7");
+  $("ringPct").textContent = pct + "%";
+  $("ringText").innerHTML = `<b style="color:var(--ok)">${inn.length}</b> inside<br><b style="color:var(--gold2)">${paid.length - inn.length}</b> still to arrive<br>${paid.length} paid total`;
+
+  $("attn").innerHTML =
+    `<div class="attn"><div><b>${pend.length}</b> <span class="mut">payments pending</span></div><button data-go="Pending">Review</button></div>` +
+    `<div class="attn"><div><b>${noPass.length}</b> <span class="mut">paid without a pass email</span></div><button class="btn-gold" data-go="bulk"${noPass.length ? "" : " disabled"}>Send now</button></div>`;
+
+  bars("byGender", tally(rows, gOf), GENDERS); bars("byDept", tally(rows, r => r.dept));
+  bars("byCat", tally(rows, r => r.category)); bars("byMethod", tally(rows, r => r.method));
+
   const fill = (id, label, list) => { const s = $(id), v = s.value; s.innerHTML = `<option value="">${label}: all</option>` + list.map(x => `<option>${esc(x)}</option>`).join(""); s.value = v; };
-  fill("fGender", "Gender", GENDERS);
-  fill("fDept", "Dept", [...new Set(rows.map(r => r.dept).filter(Boolean))].sort());
+  fill("fGender", "Gender", GENDERS); fill("fDept", "Dept", [...new Set(rows.map(r => r.dept).filter(Boolean))].sort());
+  $("nPeople").textContent = rows.length;
 
-  renderRows();
-  $("logRows").innerHTML = DATA.log.map(l => `<tr>${l.map(c => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")
-    || '<tr><td colspan="5" class="muted">No scans yet</td></tr>';
+  renderChips(); renderRows();
+  $("logRows").innerHTML = DATA.log.map(l => `<tr>${l.map((c, i) => `<td data-label="${["Time","Code","Name","Gender","Result"][i]}">${esc(c)}</td>`).join("")}</tr>`).join("") || '<tr><td colspan="5" class="empty">No scans yet</td></tr>';
 }
 
+/* ---------- attendees ---------- */
+function renderChips() {
+  const rows = DATA.rows, n = (p) => rows.filter(r => lc(r.pay) === lc(p)).length;
+  const C = [["", "All", rows.length], ["Paid", "Paid", n("Paid")], ["Pending", "Pending", n("Pending")], ["Cancelled", "Cancelled", n("Cancelled")], ["Duplicate", "Duplicates", n("Duplicate")]];
+  $("chips").innerHTML = C.map(c => `<button class="chip${payChip === c[0] ? " on" : ""}" data-chip="${c[0]}">${c[1]} · ${c[2]}</button>`).join("");
+}
 function filtered() {
-  const q = lc($("q").value), p = $("fPay").value, e = $("fEntry").value, g = $("fGender").value, d = $("fDept").value;
-  return DATA.rows.filter(r =>
-    (!q || lc([r.regId, r.name, r.email, r.phone, r.txn].join(" ")).includes(q)) &&
-    (!p || lc(r.pay) === lc(p)) && (!e || lc(r.entry) === lc(e)) &&
-    (!g || gOf(r) === g) && (!d || r.dept === d));
+  const q = lc($("q").value), e = $("fEntry").value, g = $("fGender").value, d = $("fDept").value;
+  return DATA.rows.filter(r => (!q || lc([r.regId, r.name, r.email, r.phone, r.txn].join(" ")).includes(q)) &&
+    (!payChip || lc(r.pay) === lc(payChip)) && (!e || lc(r.entry) === lc(e)) && (!g || gOf(r) === g) && (!d || r.dept === d));
 }
-
 function renderRows() {
   const list = filtered();
   $("count").textContent = list.length + " of " + DATA.rows.length + " shown";
   $("rows").innerHTML = list.map(r => {
-    const dup = isDup(r), paid = lc(r.pay) === "paid", ent = lc(r.entry) === "entered";
-    const id = esc(r.regId);
-    return `<tr>
-      <td><b class="gold">${id}</b></td>
-      <td>${esc(r.name)}<div class="muted">${esc(r.phone)}</div></td>
-      <td>${esc(r.dept)}</td>
-      <td>${esc(gOf(r))}</td><td>${esc(r.category)}</td><td>${esc(r.method)}</td><td>${r.amount || ""}</td>
-      <td>${pill(r.pay, lc(r.pay) || "no")}</td>
-      <td>${ent ? pill("Entered", "entered") + `<div class="muted">${esc(r.entryTime)}</div>` : pill("Not entered", "no")}</td>
-      <td><div class="acts">${dup ? '<span class="muted">duplicate</span>' : `
-        ${paid ? "" : `<button data-act="pay" data-v="Paid" data-id="${id}">Paid</button>`}
-        ${lc(r.pay) === "cancelled" ? "" : `<button class="danger" data-act="pay" data-v="Cancelled" data-id="${id}">Cancel</button>`}
-        ${paid ? `<button data-act="pass" data-id="${id}">Pass ↻</button>` : ""}
-        ${paid ? `<button data-act="dl" data-id="${id}">⬇ Pass</button>` : ""}
-        <button data-act="edit" data-id="${id}">✎ Edit</button>
-        ${paid ? `<button data-act="entry" data-v="${ent ? "Not Entered" : "Entered"}" data-id="${id}">${ent ? "Undo" : "Enter"}</button>` : ""}`}
-      </div></td></tr>`;
-  }).join("") || '<tr><td colspan="10" class="muted">No matches</td></tr>';
+    const dup = isDup(r), paid = lc(r.pay) === "paid", ent = lc(r.entry) === "entered", id = esc(r.regId);
+    let primary = "";
+    if (!dup) {
+      if (lc(r.pay) === "cancelled") primary = `<button data-act="pay" data-v="Pending" data-id="${id}">Restore</button>`;
+      else if (!paid) primary = `<button class="btn-gold" data-act="pay" data-v="Paid" data-id="${id}">Mark paid</button>`;
+      else if (!ent) primary = `<button class="btn-gold" data-act="entry" data-v="Entered" data-id="${id}">Admit</button>`;
+      else primary = `<button data-act="entry" data-v="Not Entered" data-id="${id}">Undo entry</button>`;
+    }
+    return `<tr class="${SEL.has(r.regId) ? "sel" : ""}">
+      <td class="nolabel"><input type="checkbox" data-sel="${id}" ${SEL.has(r.regId) ? "checked" : ""} ${dup ? "disabled" : ""}></td>
+      <td class="nolabel"><div class="who"><div class="av">${esc(initials(r.name))}</div><div><b>${esc(r.name)}</b><span class="mut">${id} · ${esc(r.phone)}</span></div></div></td>
+      <td data-label="Dept">${esc(r.dept)}<br><span class="mut">${esc(r.category)}</span></td>
+      <td data-label="Gender" class="hide-m">${esc(gOf(r))}</td>
+      <td data-label="Payment">${pill(r.pay, lc(r.pay) || "no")}<br><span class="mut">${esc(r.method)} · ₹${r.amount || 0}</span></td>
+      <td data-label="Entry">${ent ? pill("Entered", "entered") + `<br><span class="mut">${esc(r.entryTime)}</span>` : pill("Not entered", "no")}</td>
+      <td class="acts-td"><div class="acts">${dup ? '<span class="mut">duplicate</span>' : `${primary}<button class="kebab" data-menu="${id}" title="More">⋯</button>`}</div></td></tr>`;
+  }).join("") || '<tr><td colspan="7" class="empty">No attendees match these filters</td></tr>';
+  $("selAll").checked = list.length > 0 && list.filter(r => !isDup(r)).every(r => SEL.has(r.regId));
+  updateSelBar();
 }
+function updateSelBar() { $("selbar").classList.toggle("show", SEL.size > 0); $("selCount").textContent = SEL.size + " selected"; }
 
 /* ---------- actions ---------- */
-$("rows").addEventListener("click", async (ev) => {
-  const b = ev.target.closest("button[data-act]"); if (!b) return;
-  const id = b.dataset.id, act = b.dataset.act, v = b.dataset.v;
+async function run(act, id, v) {
+  const r = DATA.rows.find(x => x.regId === id); if (!r) return;
   if (act === "edit") return openEdit(id);
   if (act === "dl") return downloadPass(id);
-  const msg = act === "pay" ? `Set ${id} to ${v}?` + (v === "Paid" ? " The entry pass will be emailed." : "")
-            : act === "pass" ? `Resend entry pass to ${id}?` : `Set ${id} to ${v}?`;
-  if (!confirm(msg)) return;
-  b.disabled = true;
+  const q = { pay: `Set ${id} to ${v}?` + (v === "Paid" ? " The entry pass will be emailed." : ""), pass: `Resend entry pass to ${r.email}?`,
+              reg: `Resend registration email to ${r.email}?`, entrymail: `Resend entry confirmation to ${r.email}?`, entry: `Set ${id} to ${v}?` }[act];
+  if (!confirm(q)) return;
   try {
     const d = act === "pay" ? await api("adminpay", { regId: id, value: v })
-            : act === "pass" ? await api("adminresend", { regId: id, what: "pass" })
-            : await api("adminentry", { regId: id, value: v });
+      : act === "entry" ? await api("adminentry", { regId: id, value: v })
+      : await api("adminresend", { regId: id, what: act === "entrymail" ? "entry" : act });
     toast(d.message || (d.success ? "Done" : "Failed"));
     if (d.success) await load();
   } catch (e) { toast(e.message); }
-  b.disabled = false;
+}
+
+$("rows").addEventListener("click", (ev) => {
+  const sel = ev.target.closest("[data-sel]");
+  if (sel) { sel.checked ? SEL.add(sel.dataset.sel) : SEL.delete(sel.dataset.sel); sel.closest("tr").classList.toggle("sel", sel.checked); $("selAll").checked = false; return updateSelBar(); }
+  const m = ev.target.closest("[data-menu]"); if (m) return openMenu(m);
+  const b = ev.target.closest("[data-act]"); if (b) run(b.dataset.act, b.dataset.id, b.dataset.v);
+});
+$("selAll").addEventListener("change", (e) => { filtered().filter(r => !isDup(r)).forEach(r => e.target.checked ? SEL.add(r.regId) : SEL.delete(r.regId)); renderRows(); });
+$("selClear").addEventListener("click", () => { SEL.clear(); renderRows(); });
+$("chips").addEventListener("click", (e) => { const c = e.target.closest("[data-chip]"); if (!c) return; payChip = c.dataset.chip; renderChips(); renderRows(); });
+["q", "fEntry", "fGender", "fDept"].forEach(id => $(id).addEventListener("input", renderRows));
+$("attn").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-go]"); if (!b) return;
+  if (b.dataset.go === "bulk") return $("bulkBtn").click();
+  payChip = b.dataset.go; showTab("people"); renderChips(); renderRows();
 });
 
-["q", "fPay", "fEntry", "fGender", "fDept"].forEach(id => $(id).addEventListener("input", renderRows));
+/* row "⋯" menu */
+function openMenu(btn) {
+  const id = btn.dataset.menu, r = DATA.rows.find(x => x.regId === id); if (!r) return;
+  const paid = lc(r.pay) === "paid", ent = lc(r.entry) === "entered", E = esc(id);
+  const items = [["edit", "✎ Edit details"], paid && ["dl", "⬇ Download pass (PNG)"], paid && ["pass", "🎟 Resend entry pass"], ["reg", "✉ Resend registration email"],
+    ent && ["entrymail", "✅ Resend entry confirmation"], "sep", lc(r.pay) !== "cancelled" && ["pay|Cancelled", "✖ Cancel registration"]].filter(Boolean);
+  $("menu").innerHTML = items.map(i => i === "sep" ? '<div class="sep"></div>' : `<button data-a="${i[0]}" data-id="${E}">${i[1]}</button>`).join("");
+  const m = $("menu"); m.style.display = "block";
+  const b = btn.getBoundingClientRect(), mh = m.offsetHeight, mw = m.offsetWidth;
+  m.style.left = Math.max(8, Math.min(innerWidth - mw - 8, b.right - mw)) + "px";
+  m.style.top = (b.bottom + mh + 8 > innerHeight ? Math.max(8, b.top - mh - 4) : b.bottom + 4) + "px";
+}
+$("menu").addEventListener("click", (e) => { const b = e.target.closest("button[data-a]"); if (!b) return; $("menu").style.display = "none"; const [a, v] = b.dataset.a.split("|"); run(a, b.dataset.id, v); });
+document.addEventListener("click", (e) => { if (!e.target.closest("#menu") && !e.target.closest("[data-menu]") && !e.target.closest("#exportBtn")) { $("menu").style.display = "none"; } });
+addEventListener("scroll", () => { $("menu").style.display = "none"; }, true);
 
-document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
-  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
-  ["overview", "people", "log"].forEach(t => $("tab-" + t).style.display = t === b.dataset.tab ? "block" : "none");
-}));
+/* ---------- tabs ---------- */
+function showTab(t) {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
+  ["overview", "people", "log"].forEach(n => $("tab-" + n).style.display = n === t ? "block" : "none");
+}
+$("tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) showTab(b.dataset.tab); });
+document.addEventListener("keydown", (e) => { if (e.key === "/" && !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName) && $("app").style.display === "block") { e.preventDefault(); showTab("people"); $("q").focus(); } if (e.key === "Escape") closeEdit(); });
 
-$("csvBtn").addEventListener("click", () => {
-  const cols = ["regId","name","dept","email","phone","gender","category","method","txn","amount","pay","pass","entry","entryTime"];
-  const csv = [cols.join(",")].concat(filtered().map(r => cols.map(c => '"' + String(r[c] == null ? "" : r[c]).replace(/"/g, '""') + '"').join(","))).join("\n");
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv" }));
-  a.download = "nexora-attendees.csv"; a.click();
+/* ---------- exports ---------- */
+const targets = () => SEL.size ? DATA.rows.filter(r => SEL.has(r.regId)) : filtered();
+const scopeLabel = () => SEL.size ? SEL.size + " selected" : "current filter";
+function download(name, blob) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
+const csvCell = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+const csvBlob = (cols, list) => new Blob(["\ufeff" + [cols.map(c => c[1]).join(",")].concat(list.map(r => cols.map(c => csvCell(r[c[0]])).join(","))).join("\n")], { type: "text/csv" });
+
+function exportAttendees() { const l = targets(); download("nexora-attendees.csv", csvBlob([["regId","ID"],["name","Name"],["dept","Department"],["email","Email"],["phone","Phone"],["gender","Gender"],["category","Category"],["method","Method"],["txn","Transaction ID"],["amount","Amount"],["pay","Payment"],["entry","Entry"],["entryTime","Entry time"]], l)); toast(`Attendees CSV · ${l.length} (${scopeLabel()})`); }
+function exportEmails() {
+  const seen = new Set(), l = targets().filter(r => r.email && !isDup(r) && !seen.has(lc(r.email)) && seen.add(lc(r.email)));
+  download("nexora-emails.csv", csvBlob([["name","Name"],["email","Email"],["regId","Registration ID"],["pay","Payment"],["passSent","Pass sent"]], l)); toast(`Emails CSV · ${l.length} (${scopeLabel()})`);
+}
+async function copyEmails() {
+  const seen = new Set(), l = targets().filter(r => r.email && !isDup(r) && !seen.has(lc(r.email)) && seen.add(lc(r.email)));
+  try { await navigator.clipboard.writeText(l.map(r => r.email).join(", ")); toast(`${l.length} emails copied`); } catch (_) { toast("Copy blocked by browser — use the CSV instead."); }
+}
+async function exportZip() {
+  if (typeof JSZip === "undefined" || typeof qrcode === "undefined") return toast("Libraries didn't load. Check internet and reload.");
+  const l = targets().filter(r => lc(r.pay) === "paid" && r.qr);
+  if (!l.length) return toast("No paid attendees with a QR code in " + scopeLabel() + ".");
+  if (!confirm(`Generate ${l.length} pass image(s) as a ZIP?`)) return;
+  const zip = new JSZip();
+  for (let i = 0; i < l.length; i++) {
+    toast(`Generating passes… ${i + 1}/${l.length}`);
+    const c = await passCanvas(l[i]);
+    zip.file(l[i].regId + "-" + l[i].name.replace(/[^\w]+/g, "_") + ".png", await new Promise(r => c.toBlob(r, "image/png")));
+  }
+  download("nexora-passes.zip", await zip.generateAsync({ type: "blob" })); toast(`ZIP ready · ${l.length} passes`);
+}
+$("exportBtn").addEventListener("click", (e) => {
+  e.stopPropagation(); const m = $("menu");
+  m.innerHTML = [["xa", "⬇ Attendees (CSV)"], ["xe", "⬇ Email list (CSV)"], ["xc", "⎘ Copy emails"], ["xz", "⬇ All passes (ZIP of PNGs)"]].map(i => `<button data-x="${i[0]}">${i[1]}</button>`).join("") + `<div class="sep"></div><div class="mut" style="padding:6px 11px">Applies to ${esc(scopeLabel())}</div>`;
+  m.style.display = "block"; const b = e.currentTarget.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, b.right - m.offsetWidth)) + "px"; m.style.top = (b.bottom + 6) + "px";
 });
+$("menu").addEventListener("click", (e) => { const b = e.target.closest("[data-x]"); if (!b) return; $("menu").style.display = "none"; ({ xa: exportAttendees, xe: exportEmails, xc: copyEmails, xz: exportZip })[b.dataset.x](); });
+$("selZip").addEventListener("click", exportZip); $("selEmails").addEventListener("click", exportEmails);
 
-/* ---------- download pass as PNG (same look as the email pass) ---------- */
-const EV = { name: "NEXORA 2026", tag: "New People • New Stories • Same Dreams",
-             date: "13 October 2026", time: "11:30 AM – 5:30 PM", venue: "Tamasha Balle Balle Restaurant, Bilaspur" };
-
-function loadImg(src) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; }); }
-
+/* ---------- pass image ---------- */
+const loadImg = (src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+async function passCanvas(r) {
+  const W = 640, H = 940, c = document.createElement("canvas"); c.width = W; c.height = H;
+  const x = c.getContext("2d"), GOLD = "#d4af37", YEL = "#ffd700", F = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  const text = (t, px, py, font, color, al) => { x.font = font; x.fillStyle = color; x.textAlign = al || "center"; x.fillText(t, px, py); };
+  const fit = (t, font, maxW) => { let s = parseInt(font.match(/(\d+)px/)[1]); while (s > 12) { x.font = font.replace(/\d+px/, s + "px"); if (x.measureText(t).width <= maxW) break; s -= 2; } return font.replace(/\d+px/, s + "px"); };
+  x.fillStyle = "#050505"; x.fillRect(0, 0, W, H);
+  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(18, 18, W - 36, H - 36);
+  text("MASTER FRESHER", W / 2, 80, `700 18px ${F}`, GOLD);
+  text(EV.name, W / 2, 140, `900 56px ${F}`, "#fff");
+  text(EV.tag, W / 2, 175, `400 18px ${F}`, "#ccc");
+  x.strokeStyle = GOLD; x.lineWidth = 2; x.setLineDash([6, 6]); x.beginPath(); x.moveTo(50, 205); x.lineTo(W - 50, 205); x.stroke(); x.setLineDash([]);
+  [["NAME", r.name], ["DEPARTMENT", r.dept], ["CATEGORY", r.category], ["PAYMENT", lc(r.pay) === "paid" ? "VERIFIED" : String(r.pay).toUpperCase()]].forEach((row, i) => {
+    const y = 255 + i * 46; text(row[0], 60, y, `700 15px ${F}`, "#8e8e93", "left");
+    text(row[1] || "—", W - 60, y, fit(row[1] || "—", `700 22px ${F}`, 340), "#fff", "right");
+  });
+  text("REGISTRATION ID", W / 2, 470, `700 15px ${F}`, "#8e8e93");
+  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(W / 2 - 150, 485, 300, 56);
+  text(r.regId, W / 2, 525, `900 30px ${F}`, YEL);
+  const qr = qrcode(0, "M"); qr.addData(r.qr); qr.make();
+  const img = await loadImg(qr.createDataURL(10, 0));
+  x.fillStyle = "#fff"; x.fillRect(W / 2 - 150, 570, 300, 320); x.imageSmoothingEnabled = false;
+  x.drawImage(img, W / 2 - 130, 585, 260, 260);
+  text("SCAN AT ENTRANCE", W / 2, 875, `900 15px ${F}`, "#000");
+  text(EV.date + "  ·  " + EV.time, W / 2, 915, `700 16px ${F}`, YEL);
+  return c;
+}
 async function downloadPass(id) {
   const r = DATA.rows.find(x => x.regId === id); if (!r) return;
   if (typeof qrcode === "undefined") return toast("QR library didn't load. Check internet and reload.");
   if (!r.qr) return toast("This attendee has no QR code in the sheet.");
   if (lc(r.pay) !== "paid" && !confirm("Payment is not marked Paid — the scanner will reject this pass. Download anyway?")) return;
-
-  const W = 640, H = 1000, c = document.createElement("canvas"); c.width = W; c.height = H;
-  const x = c.getContext("2d");
-  const GOLD = "#d4af37", YEL = "#ffd700";
-  const text = (t, px, py, font, color, align) => { x.font = font; x.fillStyle = color; x.textAlign = align || "center"; x.fillText(t, px, py); };
-  const fit = (t, font, maxW) => { let s = parseInt(font.match(/(\d+)px/)[1]); while (s > 12) { x.font = font.replace(/\d+px/, s + "px"); if (x.measureText(t).width <= maxW) break; s -= 2; } return font.replace(/\d+px/, s + "px"); };
-  const F = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-
-  x.fillStyle = "#050505"; x.fillRect(0, 0, W, H);
-  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(18, 18, W - 36, H - 36);
-
-  text("MASTER FRESHER", W / 2, 80, `700 18px ${F}`, GOLD);
-  text(EV.name, W / 2, 140, `900 56px ${F}`, "#fff");
-  text(EV.tag, W / 2, 175, `400 18px ${F}`, "#ccc");
-  x.strokeStyle = GOLD; x.setLineDash([6, 6]); x.beginPath(); x.moveTo(50, 205); x.lineTo(W - 50, 205); x.stroke(); x.setLineDash([]);
-
-  const info = [["NAME", r.name], ["DEPARTMENT", r.dept], ["SEMESTER", r.sem], ["CATEGORY", r.category],
-                ["PAYMENT", lc(r.pay) === "paid" ? "VERIFIED" : r.pay.toUpperCase()]];
-  info.forEach((row, i) => {
-    const y = 250 + i * 44;
-    text(row[0], 60, y, `700 15px ${F}`, "#8e8e93", "left");
-    x.font = `700 22px ${F}`;
-    text(row[1] || "—", W - 60, y, fit(row[1] || "—", `700 22px ${F}`, 340), "#fff", "right");
-  });
-
-  text("REGISTRATION ID", W / 2, 505, `700 15px ${F}`, "#8e8e93");
-  x.strokeStyle = GOLD; x.lineWidth = 3; x.strokeRect(W / 2 - 150, 520, 300, 56);
-  text(r.regId, W / 2, 560, `900 30px ${F}`, YEL);
-
-  const qr = qrcode(0, "M"); qr.addData(r.qr); qr.make();
-  const img = await loadImg(qr.createDataURL(10, 0));
-  x.fillStyle = "#fff"; x.fillRect(W / 2 - 150, 610, 300, 320);
-  x.imageSmoothingEnabled = false;
-  x.drawImage(img, W / 2 - 130, 625, 260, 260);
-  text("SCAN AT ENTRANCE", W / 2, 915, `900 15px ${F}`, "#000");
-
-  text(EV.date, W / 2, 960, `800 20px ${F}`, YEL);
-  text(EV.time + "  ·  " + EV.venue, W / 2, 985, fit(EV.time + "  ·  " + EV.venue, `400 14px ${F}`, W - 80), "#ccc");
-
-  c.toBlob((b) => {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(b); a.download = r.regId + "-pass.png"; a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  }, "image/png");
-  toast("Pass downloaded for " + r.name);
+  const c = await passCanvas(r);
+  c.toBlob((b) => download(r.regId + "-pass.png", b), "image/png"); toast("Pass downloaded · " + r.name);
 }
 $("dlPass").addEventListener("click", () => { if (EDIT) downloadPass(EDIT.regId); });
 
-/* ---------- edit database row ---------- */
-const DEPTS = ["Chemistry", "Biotechnology", "Computer Science", "Zoology", "PGDCA"];
-const SEMS = ["1st Semester", "2nd Semester", "3rd Semester", "4th Semester"];
-const CATS = ["Junior", "Senior"], METHODS = ["Cash", "Online"], PAYS = ["Pending", "Paid", "Cancelled"];
-let EDIT = null;
-
-const opts = (list, cur, blank) => (blank ? `<option value="">Not set</option>` : "") +
-  (cur && !list.includes(cur) ? [cur, ...list] : list).map(x => `<option${x === cur ? " selected" : ""}>${esc(x)}</option>`).join("");
-const fld = (label, html, full) => `<label class="${full ? "full" : ""}">${label}${html}</label>`;
-
+/* ---------- edit modal ---------- */
+const opts = (list, cur, blank) => (blank ? `<option value="">Not set</option>` : "") + (cur && !list.includes(cur) ? [cur, ...list] : list).map(x => `<option${x === cur ? " selected" : ""}>${esc(x)}</option>`).join("");
+const fld = (l, h, full) => `<label class="${full ? "full" : ""}">${l}${h}</label>`;
 function openEdit(id) {
-  const r = DATA.rows.find(x => x.regId === id); if (!r) return;
-  EDIT = r;
-  $("mTitle").textContent = "Edit " + r.regId + " — " + r.name;
+  const r = DATA.rows.find(x => x.regId === id); if (!r) return; EDIT = r;
+  $("mTitle").textContent = r.regId + " · " + r.name;
+  const g4 = GENDERS.slice(0, 4);
   $("mBody").innerHTML =
-    fld("Full name", `<input id="e_name" value="${esc(r.name)}">`, true) +
-    fld("Email", `<input id="e_email" type="email" value="${esc(r.email)}">`) +
-    fld("Phone", `<input id="e_phone" value="${esc(r.phone)}">`) +
-    fld("Gender", `<select id="e_gender">${opts(GENDERS.slice(0, 4), GENDERS.slice(0, 4).find(g => lc(g) === lc(r.gender)) || r.gender, true)}</select>`) +
-    fld("Department", `<select id="e_dept">${opts(DEPTS, r.dept)}</select>`) +
-    fld("Semester", `<select id="e_sem">${opts(SEMS, r.sem)}</select>`) +
-    fld("Category", `<select id="e_cat">${opts(CATS, r.category)}</select>`) +
-    fld("Payment method", `<select id="e_method">${opts(METHODS, r.method)}</select>`) +
-    fld("Transaction ID", `<input id="e_txn" value="${esc(r.txn)}">`) +
-    fld("Amount (₹)", `<input id="e_amount" type="number" min="0" value="${r.amount || 0}">`) +
-    fld("Payment status", `<select id="e_pay">${opts(PAYS, r.pay)}</select>`, true);
-  $("e_resend").checked = false;
-  $("modal").classList.add("show");
+    fld("Full name", `<input id="e_name" value="${esc(r.name)}">`, true) + fld("Email", `<input id="e_email" type="email" value="${esc(r.email)}">`) +
+    fld("Phone", `<input id="e_phone" value="${esc(r.phone)}">`) + fld("Gender", `<select id="e_gender">${opts(g4, g4.find(g => lc(g) === lc(r.gender)) || r.gender, true)}</select>`) +
+    fld("Department", `<select id="e_dept">${opts(DEPTS, r.dept)}</select>`) + fld("Category", `<select id="e_cat">${opts(CATS, r.category)}</select>`) +
+    fld("Payment method", `<select id="e_method">${opts(METHODS, r.method)}</select>`) + fld("Transaction ID", `<input id="e_txn" value="${esc(r.txn)}">`) +
+    fld("Amount (₹)", `<input id="e_amount" type="number" min="0" value="${r.amount || 0}">`) + fld("Payment status", `<select id="e_pay">${opts(PAYS, r.pay)}</select>`);
+  $("e_resend").checked = false; $("modal").classList.add("show");
 }
-const closeEdit = () => { $("modal").classList.remove("show"); EDIT = null; };
-
+function closeEdit() { $("modal").classList.remove("show"); EDIT = null; }
 async function saveEdit() {
   if (!EDIT) return;
-  const fields = {
-    "Full Name": $("e_name").value, "Email Address": $("e_email").value, "Phone Number": $("e_phone").value,
-    "Gender": $("e_gender").value, "Department": $("e_dept").value, "Semester": $("e_sem").value,
-    "Category": $("e_cat").value, "Payment Method": $("e_method").value, "Transaction ID": $("e_txn").value,
-    "Amount": $("e_amount").value, "Payment Status": $("e_pay").value
-  };
-  if (fields["Payment Status"] === "Paid" && lc(EDIT.pay) !== "paid" &&
-      !confirm("Payment will be set to Paid and the entry pass emailed. Continue?")) return;
+  const f = { "Full Name": $("e_name").value, "Email Address": $("e_email").value, "Phone Number": $("e_phone").value, "Gender": $("e_gender").value,
+    "Department": $("e_dept").value, "Category": $("e_cat").value, "Payment Method": $("e_method").value, "Transaction ID": $("e_txn").value,
+    "Amount": $("e_amount").value, "Payment Status": $("e_pay").value };
+  if (f["Payment Status"] === "Paid" && lc(EDIT.pay) !== "paid" && !confirm("Payment will be set to Paid and the entry pass emailed. Continue?")) return;
   $("mSave").disabled = true; $("mSave").textContent = "Saving…";
-  try {
-    const d = await api("adminedit", { regId: EDIT.regId, fields: JSON.stringify(fields), resend: $("e_resend").checked ? "reg" : "" });
-    toast(d.message || "Done");
-    if (d.success) { closeEdit(); await load(); }
-  } catch (e) { toast(e.message); }
+  try { const d = await api("adminedit", { regId: EDIT.regId, fields: JSON.stringify(f), resend: $("e_resend").checked ? "reg" : "" }); toast(d.message || "Done"); if (d.success) { closeEdit(); await load(); } }
+  catch (e) { toast(e.message); }
   $("mSave").disabled = false; $("mSave").textContent = "Save changes";
 }
-$("mSave").addEventListener("click", saveEdit);
-$("mCancel").addEventListener("click", closeEdit);
+$("mSave").addEventListener("click", saveEdit); $("mCancel").addEventListener("click", closeEdit);
 $("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeEdit(); });
-
 document.querySelectorAll("[data-send]").forEach(b => b.addEventListener("click", async () => {
-  if (!EDIT) return;
-  const what = b.dataset.send, label = b.textContent.trim();
-  if (!confirm(`Send "${label}" email to ${EDIT.email}?`)) return;
+  if (!EDIT || !confirm(`Send "${b.textContent.trim()}" email to ${EDIT.email}?`)) return;
   b.disabled = true;
-  try { const d = await api("adminresend", { regId: EDIT.regId, what }); toast(d.message || "Done"); if (d.success) load(); }
-  catch (e) { toast(e.message); }
+  try { const d = await api("adminresend", { regId: EDIT.regId, what: b.dataset.send }); toast(d.message || "Done"); if (d.success) load(); } catch (e) { toast(e.message); }
   b.disabled = false;
 }));
 
+/* ---------- bulk / session ---------- */
 $("bulkBtn").addEventListener("click", async () => {
   const n = DATA.rows.filter(r => lc(r.pay) === "paid" && lc(r.passSent) !== "yes").length;
-  if (!n) return toast("No pending passes — everyone paid already has one.");
+  if (!n) return toast("Everyone paid already has a pass email.");
   if (!confirm(`Send entry passes to ${n} paid attendee(s) who haven't received one?\nEmails left today: ${DATA.quota ?? "?"}`)) return;
   $("bulkBtn").disabled = true; toast("Sending… this can take a while.");
-  try { const d = await api("adminbulkpass"); toast(d.message || "Done"); await load(); }
-  catch (e) { toast(e.message); }
+  try { const d = await api("adminbulkpass"); toast(d.message || "Done"); await load(); } catch (e) { toast(e.message); }
   $("bulkBtn").disabled = false;
 });
-
-$("refreshBtn").addEventListener("click", () => load());
-$("logoutBtn").addEventListener("click", () => { PIN = ""; clearInterval(timer); $("app").style.display = "none"; $("login").style.display = "flex"; $("pinInput").value = ""; });
-
+$("refreshBtn").addEventListener("click", async () => { await load(); toast("Refreshed"); });
+$("logoutBtn").addEventListener("click", () => { PIN = ""; SEL.clear(); clearInterval(timer); $("app").style.display = "none"; $("login").style.display = "flex"; $("pinInput").value = ""; });
 async function doLogin() {
   PIN = $("pinInput").value.trim(); if (!PIN) return;
   $("loginMsg").textContent = ""; $("loginBtn").disabled = true; $("loginBtn").textContent = "Checking…";
   const ok = await load(true);
   $("loginBtn").disabled = false; $("loginBtn").textContent = "Sign in";
-  if (ok) { $("login").style.display = "none"; $("app").style.display = "block"; clearInterval(timer); timer = setInterval(() => load(), 30000); }
-  else PIN = "";
+  if (ok) { $("login").style.display = "none"; $("app").style.display = "block"; clearInterval(timer); timer = setInterval(() => load(), 30000); } else PIN = "";
 }
 $("loginBtn").addEventListener("click", doLogin);
 $("pinInput").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
